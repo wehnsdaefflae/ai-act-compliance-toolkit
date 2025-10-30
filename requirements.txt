@@ -1,0 +1,23 @@
+# AI Act Compliance Toolkit - Requirements
+# Python 3.8+
+
+# Core Dependencies
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+Jinja2>=3.1.0
+
+# LangChain Integrations (for testing and examples)
+langchain-openai>=0.0.5
+langchain-anthropic>=0.0.1
+
+# Additional tools (optional but recommended)
+sentence-transformers>=2.2.0  # For embeddings in medical chatbot example
+faiss-cpu>=1.7.4              # For vector store in medical chatbot example
+
+# Development and Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Documentation
+markdown>=3.4.0

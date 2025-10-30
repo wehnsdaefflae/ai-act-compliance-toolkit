@@ -1,0 +1,42 @@
+{
+  "system_name": "llama2_complete",
+  "created_at": "2025-10-30T12:44:32.092885",
+  "timestamp": "2025-10-30T12:44:45.018687",
+  "models": [
+    {
+      "timestamp": "2025-10-30T12:44:40.305571",
+      "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+      "provider": "HuggingFaceEmbeddings",
+      "framework_component": "HuggingFaceEmbeddings",
+      "parameters": {
+        "device": "cpu"
+      }
+    },
+    {
+      "timestamp": "2025-10-30T12:44:42.930386",
+      "model_name": "TheBloke/Llama-2-7B-Chat-GGML",
+      "provider": "CTransformers",
+      "framework_component": "CTransformers",
+      "parameters": {
+        "temperature": 0.5,
+        "max_new_tokens": 512,
+        "model_type": "llama"
+      }
+    }
+  ],
+  "components": [],
+  "data_sources": [
+    {
+      "timestamp": "2025-10-30T12:44:40.305525",
+      "data_source": "/tmp/Llama2-Medical-Chatbot/data/",
+      "loader_type": "DirectoryLoader",
+      "data_type": "directory",
+      "glob_pattern": "*.pdf"
+    }
+  ],
+  "summary": {
+    "total_models": 2,
+    "total_components": 0,
+    "total_data_sources": 1
+  }
+}
