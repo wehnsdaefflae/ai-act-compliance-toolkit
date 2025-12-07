@@ -158,6 +158,16 @@ class DocumentGenerator:
                 if "provider" not in model or model["provider"] == "unknown":
                     warnings.append(f"Model {i+1}: provider is unknown or missing")
 
+        # Check risk assessment
+        if "risk_assessment" not in metadata or not metadata["risk_assessment"]:
+            recommendations.append("Run risk assessment to classify system under EU AI Act")
+        else:
+            risk_level = metadata["risk_assessment"].get("risk_level")
+            if risk_level == "high":
+                warnings.append("HIGH RISK system - extensive compliance requirements apply")
+            elif risk_level == "unacceptable":
+                warnings.append("UNACCEPTABLE RISK - system deployment is prohibited under EU AI Act")
+
         # Provide recommendations
         if not metadata.get("components"):
             recommendations.append("Consider documenting chains, tools, and prompts used")

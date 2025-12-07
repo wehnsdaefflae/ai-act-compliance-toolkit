@@ -21,6 +21,7 @@ class MetadataStorage:
         self.models: List[Dict[str, Any]] = []
         self.components: List[Dict[str, Any]] = []
         self.data_sources: List[Dict[str, Any]] = []
+        self.risk_assessment: Dict[str, Any] = {}
         self.created_at = datetime.now().isoformat()
 
     def add_model(self, model_info: Dict[str, Any]):
@@ -45,6 +46,15 @@ class MetadataStorage:
                 return
         self.data_sources.append(data_source_info)
 
+    def set_risk_assessment(self, risk_assessment: Dict[str, Any]):
+        """
+        Store risk assessment results.
+
+        Args:
+            risk_assessment: Risk assessment data from AIActRiskAssessor
+        """
+        self.risk_assessment = risk_assessment
+
     def get_all_metadata(self) -> Dict[str, Any]:
         """
         Get all captured metadata in a structured format.
@@ -52,7 +62,7 @@ class MetadataStorage:
         Returns:
             Dictionary with all metadata suitable for template rendering
         """
-        return {
+        metadata = {
             "system_name": self.system_name,
             "created_at": self.created_at,
             "timestamp": datetime.now().isoformat(),
@@ -65,6 +75,12 @@ class MetadataStorage:
                 "total_data_sources": len(self.data_sources),
             }
         }
+
+        # Include risk assessment if available
+        if self.risk_assessment:
+            metadata["risk_assessment"] = self.risk_assessment
+
+        return metadata
 
     def _deduplicate_models(self) -> List[Dict[str, Any]]:
         """Remove duplicate model entries."""
@@ -113,6 +129,7 @@ class MetadataStorage:
             self.models = data.get("models", [])
             self.components = data.get("components", [])
             self.data_sources = data.get("data_sources", [])
+            self.risk_assessment = data.get("risk_assessment", {})
             self.created_at = data.get("created_at", datetime.now().isoformat())
 
     def clear(self):
@@ -120,3 +137,4 @@ class MetadataStorage:
         self.models.clear()
         self.components.clear()
         self.data_sources.clear()
+        self.risk_assessment = {}

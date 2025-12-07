@@ -12,6 +12,7 @@ import argparse
 
 from .document_generator import DocumentGenerator
 from .metadata_storage import MetadataStorage
+from .risk_assessment import AIActRiskAssessor
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -33,6 +34,9 @@ Examples:
 
   # Validate metadata completeness
   aiact-toolkit validate metadata.json
+
+  # Assess risk level for EU AI Act compliance
+  aiact-toolkit assess-risk metadata.json --use-case "Medical diagnosis chatbot"
         """
     )
 
@@ -83,6 +87,33 @@ Examples:
         "-v", "--verbose",
         action="store_true",
         help="Show detailed validation results"
+    )
+
+    # Assess risk command
+    assess_parser = subparsers.add_parser(
+        "assess-risk",
+        help="Assess EU AI Act risk level for the system"
+    )
+    assess_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    assess_parser.add_argument(
+        "-u", "--use-case",
+        help="Description of system use case (helps determine risk level)"
+    )
+    assess_parser.add_argument(
+        "-d", "--domain",
+        help="Application domain (e.g., healthcare, education, employment)"
+    )
+    assess_parser.add_argument(
+        "-o", "--output",
+        help="Save risk assessment report to file"
+    )
+    assess_parser.add_argument(
+        "--save-to-metadata",
+        action="store_true",
+        help="Save risk assessment results back to metadata file"
     )
 
     return parser
@@ -225,6 +256,90 @@ def cmd_validate(args) -> int:
         return 1
 
 
+def cmd_assess_risk(args) -> int:
+    """Handle assess-risk command."""
+    try:
+        # Load metadata
+        generator = DocumentGenerator()
+        metadata = generator.load_metadata(args.metadata)
+
+        print(f"Assessing risk for system: {metadata.get('system_name', 'unknown')}")
+        if args.use_case:
+            print(f"Use case: {args.use_case}")
+        if args.domain:
+            print(f"Domain: {args.domain}")
+        print()
+
+        # Perform risk assessment
+        assessor = AIActRiskAssessor()
+        assessment = assessor.assess_risk(
+            metadata=metadata,
+            use_case=args.use_case,
+            application_domain=args.domain
+        )
+
+        # Display results
+        risk_level = assessment["risk_level"].upper()
+        confidence = assessment["confidence"] * 100
+
+        # Color-coded output based on risk level
+        risk_symbols = {
+            "unacceptable": "⛔",
+            "high": "⚠️",
+            "limited": "ℹ️",
+            "minimal": "✓",
+            "unknown": "❓"
+        }
+
+        symbol = risk_symbols.get(assessment["risk_level"], "?")
+        print(f"{symbol} Risk Level: {risk_level}")
+        print(f"Confidence: {confidence}%")
+        print()
+
+        print("Risk Factors:")
+        for factor in assessment["risk_factors"]:
+            print(f"  • {factor}")
+        print()
+
+        print("Compliance Requirements:")
+        for i, req in enumerate(assessment["compliance_requirements"], 1):
+            print(f"  {i}. {req}")
+        print()
+
+        print("Recommendations:")
+        for i, rec in enumerate(assessment["recommendations"], 1):
+            print(f"  {i}. {rec}")
+        print()
+
+        # Save to metadata if requested
+        if args.save_to_metadata:
+            storage = MetadataStorage()
+            storage.load_from_file(args.metadata)
+            storage.set_risk_assessment(assessment)
+            storage.save_to_file(args.metadata)
+            print(f"✓ Risk assessment saved to metadata file: {args.metadata}")
+            print()
+
+        # Generate report if output specified
+        if args.output:
+            report_data = assessor.generate_risk_report(metadata, assessment)
+            generator.generate_document(
+                template_name="risk_assessment_report.md.jinja2",
+                metadata=report_data,
+                output_path=args.output
+            )
+            print(f"✓ Risk assessment report generated: {args.output}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -241,6 +356,8 @@ def main():
         return cmd_list_templates(args)
     elif args.command == "validate":
         return cmd_validate(args)
+    elif args.command == "assess-risk":
+        return cmd_assess_risk(args)
     else:
         parser.print_help()
         return 1

@@ -1,0 +1,187 @@
+# EU AI Act Risk Assessment Report
+
+## System Information
+
+- **System Name:** {{ system_name }}
+- **Assessment Date:** {{ assessment_date }}
+- **Assessment Confidence:** {{ confidence * 100 }}%
+
+---
+
+## Risk Classification
+
+### Risk Level: **{{ risk_level | upper }}**
+
+{% if risk_level == "unacceptable" %}
+⛔ **PROHIBITED SYSTEM**
+
+This AI system has been classified as **UNACCEPTABLE RISK** under the EU AI Act. Deployment of this system is prohibited in the European Union.
+
+{% elif risk_level == "high" %}
+⚠️ **HIGH RISK SYSTEM**
+
+This AI system has been classified as **HIGH RISK** under the EU AI Act. It must comply with stringent requirements before deployment.
+
+{% if high_risk_domain %}
+**Identified High-Risk Domain:** {{ high_risk_domain }}
+{% endif %}
+
+{% elif risk_level == "limited" %}
+ℹ️ **LIMITED RISK SYSTEM**
+
+This AI system has been classified as **LIMITED RISK** under the EU AI Act. Transparency obligations apply.
+
+{% elif risk_level == "minimal" %}
+✓ **MINIMAL RISK SYSTEM**
+
+This AI system has been classified as **MINIMAL RISK** under the EU AI Act. No specific AI Act obligations apply, but general regulations (GDPR) still apply.
+
+{% else %}
+❓ **RISK LEVEL UNKNOWN**
+
+Risk assessment could not determine a definitive classification. Manual review required.
+
+{% endif %}
+
+---
+
+## Risk Factors Identified
+
+{% if risk_factors %}
+{% for factor in risk_factors %}
+- {{ factor }}
+{% endfor %}
+{% else %}
+- No specific risk factors identified
+{% endif %}
+
+---
+
+## Compliance Requirements
+
+{% if compliance_requirements %}
+{% for requirement in compliance_requirements %}
+{{ loop.index }}. {{ requirement }}
+{% endfor %}
+{% else %}
+No specific compliance requirements identified.
+{% endif %}
+
+---
+
+## Recommendations
+
+{% if recommendations %}
+{% for recommendation in recommendations %}
+{{ loop.index }}. {{ recommendation }}
+{% endfor %}
+{% else %}
+No specific recommendations at this time.
+{% endif %}
+
+---
+
+## Technical Details
+
+### AI Models Used
+
+{% if models and models|length > 0 %}
+{% for model in models %}
+#### Model {{ loop.index }}
+
+- **Model Name:** {{ model.model_name }}
+- **Provider:** {{ model.provider }}
+- **Framework Component:** {{ model.framework_component }}
+{% if model.parameters %}
+- **Parameters:**
+{% for param, value in model.parameters.items() %}
+  - {{ param }}: {{ value }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% else %}
+No models documented.
+{% endif %}
+
+### Data Sources
+
+{% if data_sources and data_sources|length > 0 %}
+{% for source in data_sources %}
+{{ loop.index }}. **{{ source.loader_type }}**
+   - Data Source: `{{ source.data_source }}`
+   - Data Type: {{ source.data_type }}
+{% if source.glob_pattern %}
+   - Pattern: `{{ source.glob_pattern }}`
+{% endif %}
+
+{% endfor %}
+{% else %}
+No data sources documented.
+{% endif %}
+
+### System Components
+
+{% if components and components|length > 0 %}
+{% for component in components %}
+- {{ component.chain_type or component.tool_name or "Unknown Component" }}
+{% endfor %}
+{% else %}
+No components documented.
+{% endif %}
+
+---
+
+## Metadata Summary
+
+{% if metadata_summary %}
+- **Total Models:** {{ metadata_summary.total_models }}
+- **Total Data Sources:** {{ metadata_summary.total_data_sources }}
+- **Total Components:** {{ metadata_summary.total_components }}
+{% else %}
+Metadata summary not available.
+{% endif %}
+
+---
+
+## Next Steps
+
+{% if risk_level == "unacceptable" %}
+1. **DO NOT DEPLOY** this system in the EU
+2. Consult with legal experts immediately
+3. Consider redesigning the system to comply with EU AI Act requirements
+4. Explore alternative approaches that do not involve prohibited AI practices
+
+{% elif risk_level == "high" %}
+1. Conduct comprehensive risk management assessment
+2. Prepare detailed technical documentation (Annex IV)
+3. Implement required safeguards and human oversight mechanisms
+4. Conduct conformity assessment with notified body
+5. Register system in EU AI Act database
+6. Establish post-market monitoring procedures
+7. Prepare incident response plan
+
+{% elif risk_level == "limited" %}
+1. Implement transparency mechanisms in user interface
+2. Ensure users are clearly informed they are interacting with AI
+3. Add appropriate disclosures in terms of service
+4. Document AI decision-making processes
+5. Monitor for changes in use case that might increase risk level
+
+{% else %}
+1. Maintain basic documentation of AI system
+2. Ensure GDPR compliance for any personal data processing
+3. Monitor regulatory developments and updates to AI Act
+4. Periodically reassess risk level as system evolves
+5. Consider adopting voluntary codes of conduct
+
+{% endif %}
+
+---
+
+## Disclaimer
+
+This risk assessment is automated and based on limited information. It should be used as an initial screening tool only. A comprehensive legal and technical review by qualified experts is strongly recommended before deploying any AI system, especially in high-risk domains.
+
+**Assessment generated by:** AI Act Compliance Toolkit
+**Assessment method:** Automated metadata analysis with EU AI Act risk classification framework
