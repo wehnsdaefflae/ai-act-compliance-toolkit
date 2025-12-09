@@ -1,0 +1,280 @@
+# Operational Metrics Report
+
+## System Information
+
+- **System Name:** {{ system_name }}
+- **Report Generated:** {{ timestamp }}
+{% if operational_metrics and operational_metrics.tracking_period %}
+- **Tracking Period:** {{ operational_metrics.tracking_period.start }} to {{ operational_metrics.tracking_period.end }}
+- **Duration:** {{ operational_metrics.tracking_period.duration_seconds }} seconds
+{% endif %}
+
+---
+
+## Executive Summary
+
+{% if operational_metrics and operational_metrics.operations %}
+This report provides transparency into the operational behavior of the AI system, including resource consumption, performance characteristics, and reliability metrics. This data supports accountability and transparency requirements under the EU AI Act.
+
+### Key Metrics
+
+- **Total Operations:** {{ operational_metrics.operations.total }}
+- **Success Rate:** {{ 100 - operational_metrics.operations.error_rate_percent }}%
+- **Error Rate:** {{ operational_metrics.operations.error_rate_percent }}%
+{% if operational_metrics.costs %}
+- **Estimated Total Cost:** ${{ operational_metrics.costs.total_estimated_usd }}
+{% endif %}
+{% if operational_metrics.token_usage %}
+- **Total Tokens Processed:** {{ operational_metrics.token_usage.total_tokens | default(0) }}
+{% endif %}
+
+{% else %}
+No operational metrics data available.
+{% endif %}
+
+---
+
+## Operations Overview
+
+{% if operational_metrics and operational_metrics.operations %}
+
+### Operation Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total Operations | {{ operational_metrics.operations.total }} |
+| Successful Operations | {{ operational_metrics.operations.successful }} |
+| Failed Operations | {{ operational_metrics.operations.failed }} |
+| Error Rate | {{ operational_metrics.operations.error_rate_percent }}% |
+
+{% if operational_metrics.operations.error_rate_percent > 5 %}
+⚠️ **WARNING:** Error rate exceeds 5%. Investigation recommended.
+{% elif operational_metrics.operations.error_rate_percent > 1 %}
+ℹ️ **NOTICE:** Error rate is elevated. Monitor for trends.
+{% else %}
+✓ Error rate is within acceptable range.
+{% endif %}
+
+### Operations by Type
+
+{% if operational_metrics.operations_by_type %}
+{% for op_type, count in operational_metrics.operations_by_type.items() %}
+- **{{ op_type }}:** {{ count }} operations
+{% endfor %}
+{% else %}
+No operation type data available.
+{% endif %}
+
+### Operations by Model
+
+{% if operational_metrics.operations_by_model %}
+{% for model, count in operational_metrics.operations_by_model.items() %}
+- **{{ model }}:** {{ count }} operations
+{% endfor %}
+{% else %}
+No model-specific data available.
+{% endif %}
+
+{% else %}
+No operations data available.
+{% endif %}
+
+---
+
+## Performance Metrics
+
+{% if operational_metrics and operational_metrics.performance %}
+
+### Execution Time Statistics
+
+| Metric | Value (ms) |
+|--------|------------|
+| Average Execution Time | {{ operational_metrics.performance.avg_execution_time_ms }} |
+| Minimum Execution Time | {{ operational_metrics.performance.min_execution_time_ms }} |
+| Maximum Execution Time | {{ operational_metrics.performance.max_execution_time_ms }} |
+
+{% if operational_metrics.performance.avg_execution_time_ms > 10000 %}
+⚠️ **PERFORMANCE WARNING:** Average execution time exceeds 10 seconds. Consider optimization.
+{% elif operational_metrics.performance.avg_execution_time_ms > 5000 %}
+ℹ️ **NOTICE:** Average execution time is elevated. Monitor performance trends.
+{% else %}
+✓ Performance metrics are within acceptable range.
+{% endif %}
+
+{% else %}
+No performance data available.
+{% endif %}
+
+---
+
+## Resource Consumption
+
+{% if operational_metrics and operational_metrics.token_usage %}
+
+### Token Usage
+
+| Metric | Tokens |
+|--------|--------|
+| Input Tokens | {{ operational_metrics.token_usage.total_input_tokens | default(0) }} |
+| Output Tokens | {{ operational_metrics.token_usage.total_output_tokens | default(0) }} |
+| **Total Tokens** | **{{ operational_metrics.token_usage.total_tokens | default(0) }}** |
+
+{% if operational_metrics.tokens_by_model %}
+#### Token Usage by Model
+
+{% for model, tokens in operational_metrics.tokens_by_model.items() %}
+- **{{ model }}:** {{ tokens }} tokens
+{% endfor %}
+{% endif %}
+
+{% if operational_metrics.token_usage.total_tokens > 1000000 %}
+⚠️ **HIGH USAGE:** Token consumption exceeds 1M tokens. Review prompt efficiency and context management.
+{% elif operational_metrics.token_usage.total_tokens > 100000 %}
+ℹ️ Token usage is significant. Consider optimization strategies.
+{% endif %}
+
+{% else %}
+No token usage data available.
+{% endif %}
+
+---
+
+## Cost Analysis
+
+{% if operational_metrics and operational_metrics.costs %}
+
+### Estimated Operational Costs
+
+**Total Estimated Cost:** ${{ operational_metrics.costs.total_estimated_usd }}
+
+{% if operational_metrics.costs.by_model %}
+#### Cost Breakdown by Model
+
+{% for model, cost in operational_metrics.costs.by_model.items() %}
+- **{{ model }}:** ${{ cost }}
+{% endfor %}
+{% endif %}
+
+{% if operational_metrics.costs.total_estimated_usd > 10 %}
+⚠️ **COST ALERT:** Operational costs are significant. Review usage patterns and model selection.
+{% elif operational_metrics.costs.total_estimated_usd > 1 %}
+ℹ️ Monitor costs regularly to prevent overruns.
+{% endif %}
+
+**Note:** Cost estimates are approximate and based on standard pricing. Actual costs may vary based on your specific agreements with AI providers.
+
+{% else %}
+No cost data available. Cost tracking may not be supported for all model types.
+{% endif %}
+
+---
+
+## Error Analysis
+
+{% if operational_metrics and operational_metrics.errors %}
+
+### Recorded Errors
+
+Total Errors: {{ operational_metrics.errors | length }}
+
+{% if operational_metrics.errors | length > 0 %}
+{% for error in operational_metrics.errors[:10] %}
+#### Error {{ loop.index }}
+
+- **Timestamp:** {{ error.timestamp }}
+- **Operation Type:** {{ error.operation_type }}
+- **Model:** {{ error.model_name }}
+- **Error Message:** {{ error.error_message }}
+
+{% endfor %}
+
+{% if operational_metrics.errors | length > 10 %}
+*Showing first 10 errors. Total errors: {{ operational_metrics.errors | length }}*
+{% endif %}
+
+### Recommendations
+
+- Review error patterns to identify systemic issues
+- Check API key validity and rate limits
+- Verify network connectivity and timeout settings
+- Ensure model names and parameters are correct
+
+{% else %}
+✓ No errors recorded during tracking period.
+{% endif %}
+
+{% else %}
+No error data available.
+{% endif %}
+
+---
+
+## Compliance and Transparency
+
+### AI Act Relevance
+
+This operational metrics report supports the following EU AI Act requirements:
+
+1. **Transparency (Article 13):** Provides clear information about system operations and resource consumption
+2. **Logging (Article 12):** Maintains automatic records of AI system operations
+3. **Accountability:** Enables monitoring and auditing of system behavior
+4. **Risk Management (Article 9):** Identifies operational issues and performance anomalies
+
+### Data Usage
+
+- All metrics are collected automatically during system operation
+- Token usage data reflects actual model interactions
+- Cost estimates are calculated based on public pricing information
+- No personally identifiable information is logged in operational metrics
+
+### Recommended Actions
+
+{% if operational_metrics %}
+1. Review this report regularly to identify trends and anomalies
+2. Archive reports for audit trail and compliance documentation
+3. Investigate any errors or performance degradation promptly
+4. Use insights to optimize system performance and cost efficiency
+5. Include operational metrics in periodic compliance reviews
+{% else %}
+1. Enable operational metrics tracking to gain visibility into system behavior
+2. Configure monitoring to capture token usage and performance data
+3. Establish baseline metrics for normal operation
+{% endif %}
+
+---
+
+## System Configuration
+
+### Monitored Models
+
+{% if models and models | length > 0 %}
+{% for model in models %}
+#### Model {{ loop.index }}
+
+- **Name:** {{ model.model_name }}
+- **Provider:** {{ model.provider }}
+- **Component:** {{ model.framework_component }}
+{% if model.parameters %}
+- **Parameters:**
+{% for param, value in model.parameters.items() %}
+  - {{ param }}: {{ value }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% else %}
+No model information available.
+{% endif %}
+
+---
+
+## Report Metadata
+
+- **Generated By:** AI Act Compliance Toolkit
+- **Report Type:** Operational Metrics
+- **Data Collection Period:** {% if operational_metrics and operational_metrics.tracking_period %}{{ operational_metrics.tracking_period.duration_seconds }} seconds{% else %}N/A{% endif %}
+- **Total Operations Analyzed:** {% if operational_metrics and operational_metrics.operations %}{{ operational_metrics.operations.total }}{% else %}0{% endif %}
+
+---
+
+**Disclaimer:** This report is generated automatically from operational data. Metrics are estimates and should be validated against actual billing and usage data from AI service providers. This report is intended for transparency and compliance purposes and does not constitute financial advice or guarantees of system performance.

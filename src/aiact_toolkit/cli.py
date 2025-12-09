@@ -13,6 +13,7 @@ import argparse
 from .document_generator import DocumentGenerator
 from .metadata_storage import MetadataStorage
 from .risk_assessment import AIActRiskAssessor
+from .operational_metrics import MetricsAnalyzer
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -37,6 +38,9 @@ Examples:
 
   # Assess risk level for EU AI Act compliance
   aiact-toolkit assess-risk metadata.json --use-case "Medical diagnosis chatbot"
+
+  # Analyze operational metrics
+  aiact-toolkit analyze-metrics metadata.json
         """
     )
 
@@ -114,6 +118,30 @@ Examples:
         "--save-to-metadata",
         action="store_true",
         help="Save risk assessment results back to metadata file"
+    )
+
+    # Analyze metrics command
+    metrics_parser = subparsers.add_parser(
+        "analyze-metrics",
+        help="Analyze operational metrics and identify issues"
+    )
+    metrics_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file with operational metrics"
+    )
+    metrics_parser.add_argument(
+        "-o", "--output",
+        help="Save operational report to file"
+    )
+    metrics_parser.add_argument(
+        "--show-costs",
+        action="store_true",
+        help="Show detailed cost analysis"
+    )
+    metrics_parser.add_argument(
+        "--show-performance",
+        action="store_true",
+        help="Show detailed performance analysis"
     )
 
     return parser
@@ -340,6 +368,119 @@ def cmd_assess_risk(args) -> int:
         return 1
 
 
+def cmd_analyze_metrics(args) -> int:
+    """Handle analyze-metrics command."""
+    try:
+        # Load metadata
+        generator = DocumentGenerator()
+        metadata = generator.load_metadata(args.metadata)
+
+        # Check if operational metrics exist
+        if "operational_metrics" not in metadata or not metadata["operational_metrics"]:
+            print("⚠ No operational metrics found in metadata file.", file=sys.stderr)
+            print("Make sure to enable metrics tracking when running your AI system:", file=sys.stderr)
+            print("  monitor = LangChainMonitor(system_name='...', enable_metrics=True)", file=sys.stderr)
+            return 1
+
+        metrics = metadata["operational_metrics"]
+
+        print(f"Analyzing operational metrics for: {metadata.get('system_name', 'unknown')}")
+        print()
+
+        # Display summary
+        if "operations" in metrics:
+            ops = metrics["operations"]
+            print("📊 Operations Summary:")
+            print(f"  Total Operations: {ops.get('total', 0)}")
+            print(f"  Successful: {ops.get('successful', 0)}")
+            print(f"  Failed: {ops.get('failed', 0)}")
+            print(f"  Error Rate: {ops.get('error_rate_percent', 0)}%")
+            print()
+
+        # Performance analysis
+        if args.show_performance or not args.show_costs:
+            if "performance" in metrics:
+                perf = metrics["performance"]
+                print("⚡ Performance Metrics:")
+                print(f"  Average Execution Time: {perf.get('avg_execution_time_ms', 0):.2f}ms")
+                print(f"  Min Execution Time: {perf.get('min_execution_time_ms', 0):.2f}ms")
+                print(f"  Max Execution Time: {perf.get('max_execution_time_ms', 0):.2f}ms")
+                print()
+
+                # Detailed performance analysis
+                if "operations" in metadata.get("operational_metrics", {}):
+                    analyzer = MetricsAnalyzer()
+                    # Note: We'd need the full operations list for detailed analysis
+                    # For now, just show summary
+
+        # Cost analysis
+        if args.show_costs or not args.show_performance:
+            if "costs" in metrics:
+                costs = metrics["costs"]
+                print("💰 Cost Analysis:")
+                print(f"  Total Estimated Cost: ${costs.get('total_estimated_usd', 0):.6f}")
+
+                if "by_model" in costs and costs["by_model"]:
+                    print("  Cost by Model:")
+                    for model, cost in costs["by_model"].items():
+                        print(f"    - {model}: ${cost:.6f}")
+                print()
+
+        # Token usage
+        if "token_usage" in metrics:
+            tokens = metrics["token_usage"]
+            print("🔤 Token Usage:")
+            print(f"  Input Tokens: {tokens.get('total_input_tokens', 0):,}")
+            print(f"  Output Tokens: {tokens.get('total_output_tokens', 0):,}")
+            print(f"  Total Tokens: {tokens.get('total_tokens', 0):,}")
+            print()
+
+        # Identify issues
+        analyzer = MetricsAnalyzer()
+        issues = analyzer.identify_issues(metrics)
+
+        if issues:
+            print("🔍 Analysis & Recommendations:")
+            for issue in issues:
+                if "WARNING" in issue or "High" in issue or "error rate" in issue:
+                    print(f"  ⚠️  {issue}")
+                elif "NOTICE" in issue or "Elevated" in issue:
+                    print(f"  ℹ️  {issue}")
+                else:
+                    print(f"  ✓  {issue}")
+            print()
+
+        # Errors summary
+        if "errors" in metrics and metrics["errors"]:
+            error_count = len(metrics["errors"])
+            print(f"❌ Errors Recorded: {error_count}")
+            if error_count > 0:
+                print("  Recent errors:")
+                for error in metrics["errors"][:3]:
+                    print(f"    - {error.get('error_message', 'Unknown error')}")
+                if error_count > 3:
+                    print(f"    ... and {error_count - 3} more")
+            print()
+
+        # Generate report if requested
+        if args.output:
+            generator.generate_document(
+                template_name="operational_report.md.jinja2",
+                metadata=metadata,
+                output_path=args.output
+            )
+            print(f"✓ Operational report generated: {args.output}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -358,6 +499,8 @@ def main():
         return cmd_validate(args)
     elif args.command == "assess-risk":
         return cmd_assess_risk(args)
+    elif args.command == "analyze-metrics":
+        return cmd_analyze_metrics(args)
     else:
         parser.print_help()
         return 1

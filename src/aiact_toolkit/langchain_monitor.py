@@ -14,11 +14,13 @@ Approximately 180 lines as per prototype specification.
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 import json
+import time
 try:
     from langchain_core.callbacks.base import BaseCallbackHandler
 except ImportError:
     from langchain.callbacks.base import BaseCallbackHandler
 from .metadata_storage import MetadataStorage
+from .operational_metrics import OperationalMetricsTracker
 
 
 class AIActCallbackHandler(BaseCallbackHandler):
@@ -26,15 +28,23 @@ class AIActCallbackHandler(BaseCallbackHandler):
     Custom callback handler that captures LangChain operations for compliance metadata.
     """
 
-    def __init__(self, metadata_storage: MetadataStorage):
+    def __init__(self, metadata_storage: MetadataStorage, metrics_tracker: Optional[OperationalMetricsTracker] = None):
         """Initialize the callback handler with metadata storage."""
         super().__init__()
         self.storage = metadata_storage
+        self.metrics_tracker = metrics_tracker
+        self._operation_start_times: Dict[str, float] = {}
+        self._operation_metadata: Dict[str, Dict[str, Any]] = {}
 
     def on_llm_start(
         self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
     ) -> None:
         """Capture LLM initialization and calls."""
+        run_id = str(kwargs.get("run_id", id(serialized)))
+
+        # Start timing
+        self._operation_start_times[run_id] = time.time()
+
         # Extract model information from serialized data
         model_info = {
             "timestamp": datetime.now().isoformat(),
@@ -60,12 +70,71 @@ class AIActCallbackHandler(BaseCallbackHandler):
         # Remove None values
         model_info["parameters"] = {k: v for k, v in model_info["parameters"].items() if v is not None}
 
+        # Store for later use in on_llm_end
+        self._operation_metadata[run_id] = model_info
+
         self.storage.add_model(model_info)
 
     def on_llm_end(self, response: Any, **kwargs: Any) -> None:
-        """Capture LLM response metadata."""
-        # Can capture token usage, response time, etc.
-        pass
+        """Capture LLM response metadata including token usage and timing."""
+        run_id = str(kwargs.get("run_id", id(response)))
+
+        if self.metrics_tracker and run_id in self._operation_start_times:
+            # Calculate execution time
+            execution_time = (time.time() - self._operation_start_times[run_id]) * 1000  # Convert to ms
+
+            # Get model info from start
+            model_info = self._operation_metadata.get(run_id, {})
+            model_name = model_info.get("model_name", "unknown")
+            provider = model_info.get("provider", "unknown")
+
+            # Extract token usage if available
+            token_usage = None
+            if hasattr(response, "llm_output") and response.llm_output:
+                token_data = response.llm_output.get("token_usage", {})
+                if token_data:
+                    token_usage = {
+                        "input_tokens": token_data.get("prompt_tokens", 0),
+                        "output_tokens": token_data.get("completion_tokens", 0),
+                        "total_tokens": token_data.get("total_tokens", 0)
+                    }
+
+            # Record operation
+            self.metrics_tracker.record_operation(
+                operation_type="llm_call",
+                model_name=model_name,
+                provider=provider,
+                execution_time_ms=execution_time,
+                token_usage=token_usage,
+                success=True
+            )
+
+            # Cleanup
+            del self._operation_start_times[run_id]
+            if run_id in self._operation_metadata:
+                del self._operation_metadata[run_id]
+
+    def on_llm_error(self, error: Exception, **kwargs: Any) -> None:
+        """Capture LLM errors."""
+        run_id = str(kwargs.get("run_id", id(error)))
+
+        if self.metrics_tracker and run_id in self._operation_start_times:
+            execution_time = (time.time() - self._operation_start_times[run_id]) * 1000
+            model_info = self._operation_metadata.get(run_id, {})
+
+            self.metrics_tracker.record_operation(
+                operation_type="llm_call",
+                model_name=model_info.get("model_name", "unknown"),
+                provider=model_info.get("provider", "unknown"),
+                execution_time_ms=execution_time,
+                success=False,
+                error_message=str(error)
+            )
+
+            # Cleanup
+            del self._operation_start_times[run_id]
+            if run_id in self._operation_metadata:
+                del self._operation_metadata[run_id]
 
     def on_chain_start(
         self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any
@@ -125,16 +194,18 @@ class LangChainMonitor:
         monitor.save_to_file("metadata.json")
     """
 
-    def __init__(self, system_name: Optional[str] = None):
+    def __init__(self, system_name: Optional[str] = None, enable_metrics: bool = True):
         """
         Initialize the LangChain monitor.
 
         Args:
             system_name: Optional name for the AI system being monitored
+            enable_metrics: Enable operational metrics tracking (default: True)
         """
         self.system_name = system_name or "unnamed_system"
         self.storage = MetadataStorage(self.system_name)
-        self.callback_handler = AIActCallbackHandler(self.storage)
+        self.metrics_tracker = OperationalMetricsTracker() if enable_metrics else None
+        self.callback_handler = AIActCallbackHandler(self.storage, self.metrics_tracker)
         self._is_started = False
         self._patched_classes = []
 
@@ -297,7 +368,19 @@ class LangChainMonitor:
 
     def get_metadata(self) -> Dict[str, Any]:
         """Get captured metadata."""
-        return self.storage.get_all_metadata()
+        metadata = self.storage.get_all_metadata()
+
+        # Include operational metrics if available
+        if self.metrics_tracker:
+            metadata["operational_metrics"] = self.metrics_tracker.get_summary()
+
+        return metadata
+
+    def get_metrics_summary(self) -> Dict[str, Any]:
+        """Get operational metrics summary."""
+        if self.metrics_tracker:
+            return self.metrics_tracker.get_summary()
+        return {"message": "Metrics tracking not enabled"}
 
     def save_to_file(self, filepath: str):
         """Save metadata to JSON file."""

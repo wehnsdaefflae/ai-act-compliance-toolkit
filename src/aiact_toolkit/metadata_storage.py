@@ -22,6 +22,7 @@ class MetadataStorage:
         self.components: List[Dict[str, Any]] = []
         self.data_sources: List[Dict[str, Any]] = []
         self.risk_assessment: Dict[str, Any] = {}
+        self.operational_metrics: Dict[str, Any] = {}
         self.created_at = datetime.now().isoformat()
 
     def add_model(self, model_info: Dict[str, Any]):
@@ -55,6 +56,15 @@ class MetadataStorage:
         """
         self.risk_assessment = risk_assessment
 
+    def set_operational_metrics(self, metrics: Dict[str, Any]):
+        """
+        Store operational metrics.
+
+        Args:
+            metrics: Operational metrics from OperationalMetricsTracker
+        """
+        self.operational_metrics = metrics
+
     def get_all_metadata(self) -> Dict[str, Any]:
         """
         Get all captured metadata in a structured format.
@@ -79,6 +89,10 @@ class MetadataStorage:
         # Include risk assessment if available
         if self.risk_assessment:
             metadata["risk_assessment"] = self.risk_assessment
+
+        # Include operational metrics if available
+        if self.operational_metrics:
+            metadata["operational_metrics"] = self.operational_metrics
 
         return metadata
 
@@ -130,6 +144,7 @@ class MetadataStorage:
             self.components = data.get("components", [])
             self.data_sources = data.get("data_sources", [])
             self.risk_assessment = data.get("risk_assessment", {})
+            self.operational_metrics = data.get("operational_metrics", {})
             self.created_at = data.get("created_at", datetime.now().isoformat())
 
     def clear(self):
@@ -138,3 +153,4 @@ class MetadataStorage:
         self.components.clear()
         self.data_sources.clear()
         self.risk_assessment = {}
+        self.operational_metrics = {}

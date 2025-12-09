@@ -177,6 +177,24 @@ class DocumentGenerator:
             if not has_temp:
                 recommendations.append("Document temperature and other model parameters for transparency")
 
+        # Check operational metrics
+        if "operational_metrics" not in metadata or not metadata["operational_metrics"]:
+            recommendations.append("Enable operational metrics tracking for transparency and accountability")
+        else:
+            ops_metrics = metadata["operational_metrics"]
+            # Check if there's actual operation data
+            if ops_metrics.get("operations", {}).get("total", 0) == 0:
+                warnings.append("No operations recorded in metrics - ensure monitoring is active during execution")
+
+            # Check error rate
+            error_rate = ops_metrics.get("operations", {}).get("error_rate_percent", 0)
+            if error_rate > 5:
+                warnings.append(f"High error rate in operations: {error_rate}% - investigate system reliability")
+
+            # Check for cost data
+            if "costs" not in ops_metrics or ops_metrics.get("costs", {}).get("total_estimated_usd", 0) == 0:
+                recommendations.append("Cost tracking not available - verify model compatibility with cost estimation")
+
         return {
             "valid": len(missing_fields) == 0,
             "warnings": warnings,

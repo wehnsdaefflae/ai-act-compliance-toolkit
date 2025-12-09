@@ -9,6 +9,7 @@ from .langchain_monitor import LangChainMonitor
 from .metadata_storage import MetadataStorage
 from .document_generator import DocumentGenerator
 from .risk_assessment import AIActRiskAssessor, RiskLevel
+from .operational_metrics import OperationalMetricsTracker, MetricsAnalyzer
 
 __version__ = "0.1.0"
 __all__ = [
@@ -16,5 +17,7 @@ __all__ = [
     "MetadataStorage",
     "DocumentGenerator",
     "AIActRiskAssessor",
-    "RiskLevel"
+    "RiskLevel",
+    "OperationalMetricsTracker",
+    "MetricsAnalyzer"
 ]
