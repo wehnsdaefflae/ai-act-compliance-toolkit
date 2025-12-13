@@ -14,6 +14,7 @@ from .document_generator import DocumentGenerator
 from .metadata_storage import MetadataStorage
 from .risk_assessment import AIActRiskAssessor
 from .operational_metrics import MetricsAnalyzer
+from .audit_trail import AuditReportGenerator
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -41,6 +42,18 @@ Examples:
 
   # Analyze operational metrics
   aiact-toolkit analyze-metrics metadata.json
+
+  # View audit trail
+  aiact-toolkit audit-trail metadata.json
+
+  # Generate audit report
+  aiact-toolkit audit-trail metadata.json -o audit_report.md
+
+  # Compare metadata versions
+  aiact-toolkit compare-versions metadata.json 1 3
+
+  # View version history
+  aiact-toolkit version-history metadata.json
         """
     )
 
@@ -142,6 +155,68 @@ Examples:
         "--show-performance",
         action="store_true",
         help="Show detailed performance analysis"
+    )
+
+    # Audit trail command
+    audit_parser = subparsers.add_parser(
+        "audit-trail",
+        help="View and analyze audit trail (EU AI Act Article 12 compliance)"
+    )
+    audit_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    audit_parser.add_argument(
+        "-o", "--output",
+        help="Generate audit report to file"
+    )
+    audit_parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify integrity of audit trail"
+    )
+    audit_parser.add_argument(
+        "--event-type",
+        help="Filter by event type"
+    )
+
+    # Compare versions command
+    compare_parser = subparsers.add_parser(
+        "compare-versions",
+        help="Compare two versions of metadata"
+    )
+    compare_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    compare_parser.add_argument(
+        "version1",
+        type=int,
+        help="First version number"
+    )
+    compare_parser.add_argument(
+        "version2",
+        type=int,
+        help="Second version number"
+    )
+    compare_parser.add_argument(
+        "-o", "--output",
+        help="Save comparison report to file"
+    )
+
+    # Version history command
+    history_parser = subparsers.add_parser(
+        "version-history",
+        help="View version history of metadata"
+    )
+    history_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    history_parser.add_argument(
+        "--since",
+        type=int,
+        help="Show changes since this version"
     )
 
     return parser
@@ -481,6 +556,171 @@ def cmd_analyze_metrics(args) -> int:
         return 1
 
 
+def cmd_audit_trail(args) -> int:
+    """Handle audit-trail command."""
+    try:
+        # Load metadata
+        storage = MetadataStorage(enable_auditing=True, enable_versioning=False)
+        storage.load_from_file(args.metadata, load_audit=True, load_versions=False)
+
+        audit_trail = storage.get_audit_trail()
+        if not audit_trail or not audit_trail.events:
+            print("No audit trail found in metadata file.", file=sys.stderr)
+            return 1
+
+        print(f"Audit Trail for: {storage.system_name}")
+        print(f"Total Events: {len(audit_trail.events)}")
+        print()
+
+        # Verify integrity if requested
+        if args.verify:
+            verification = audit_trail.verify_integrity()
+            print("Integrity Verification:")
+            print(f"  Total Events: {verification['total_events']}")
+            print(f"  Verified: {verification['verified']}")
+            if verification['corrupted']:
+                print(f"  ⚠ Corrupted Events: {len(verification['corrupted'])}")
+                for event_id in verification['corrupted']:
+                    print(f"    - {event_id}")
+            else:
+                print("  ✓ All events verified - integrity intact")
+            print()
+
+        # Display events
+        events = audit_trail.events
+        if args.event_type:
+            events = [e for e in events if e.event_type == args.event_type]
+
+        print("Recent Events:")
+        for event in events[-20:]:  # Show last 20 events
+            print(f"  [{event.timestamp}] {event.event_type}")
+            print(f"    {event.description}")
+            if event.metadata:
+                print(f"    Details: {event.metadata}")
+            print()
+
+        # Generate report if requested
+        if args.output:
+            report_data = AuditReportGenerator.generate_compliance_report(audit_trail)
+            generator = DocumentGenerator()
+            generator.generate_document(
+                template_name="audit_report.md.jinja2",
+                metadata=report_data,
+                output_path=args.output
+            )
+            print(f"✓ Audit report generated: {args.output}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_compare_versions(args) -> int:
+    """Handle compare-versions command."""
+    try:
+        # Load metadata with version control
+        storage = MetadataStorage(enable_auditing=False, enable_versioning=True)
+        storage.load_from_file(args.metadata, load_audit=False, load_versions=True)
+
+        version_control = storage.get_version_control()
+        if not version_control:
+            print("No version history found in metadata file.", file=sys.stderr)
+            return 1
+
+        # Compare versions
+        comparison = version_control.compare_versions(args.version1, args.version2)
+
+        if "error" in comparison:
+            print(f"Error: {comparison['error']}", file=sys.stderr)
+            return 1
+
+        print(f"Comparing Versions {args.version1} and {args.version2}")
+        print(f"Version {args.version1}: {comparison['timestamp1']}")
+        print(f"Version {args.version2}: {comparison['timestamp2']}")
+        print()
+        print(f"Total Changes: {comparison['total_changes']}")
+        print()
+
+        if comparison['changes']:
+            print("Changes:")
+            for change in comparison['changes']:
+                change_type = change['type']
+                if change_type == 'model_added':
+                    print(f"  + Model Added: {change['model_name']}")
+                elif change_type == 'model_removed':
+                    print(f"  - Model Removed: {change['model_name']}")
+                elif change_type == 'model_modified':
+                    print(f"  ~ Model Modified: {change['model_name']}")
+                elif change_type == 'data_source_added':
+                    print(f"  + Data Source Added: {change['data_source']}")
+                elif change_type == 'data_source_removed':
+                    print(f"  - Data Source Removed: {change['data_source']}")
+                elif change_type == 'risk_level_changed':
+                    print(f"  ! Risk Level: {change['old_level']} → {change['new_level']}")
+            print()
+        else:
+            print("No significant changes detected between versions.")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_version_history(args) -> int:
+    """Handle version-history command."""
+    try:
+        # Load metadata with version control
+        storage = MetadataStorage(enable_auditing=False, enable_versioning=True)
+        storage.load_from_file(args.metadata, load_audit=False, load_versions=True)
+
+        version_control = storage.get_version_control()
+        if not version_control or not version_control.versions:
+            print("No version history found in metadata file.", file=sys.stderr)
+            return 1
+
+        print(f"Version History for: {storage.system_name}")
+        print(f"Current Version: {version_control.current_version}")
+        print(f"Total Versions: {len(version_control.versions)}")
+        print()
+
+        if args.since:
+            changes = version_control.get_changes_since_version(args.since)
+            print(f"Changes since version {args.since}:")
+            print()
+            for change in changes['versions_changed']:
+                print(f"  Version {change['version']}: {change['timestamp']}")
+                print(f"    {change['description']}")
+                print(f"    Changed by: {change['changed_by']}")
+                print()
+        else:
+            history = version_control.get_version_history()
+            print("All Versions:")
+            for version in history:
+                print(f"  Version {version['version']}: {version['timestamp']}")
+                print(f"    {version['description']}")
+                print(f"    Changed by: {version['changed_by']}")
+                print()
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -501,6 +741,12 @@ def main():
         return cmd_assess_risk(args)
     elif args.command == "analyze-metrics":
         return cmd_analyze_metrics(args)
+    elif args.command == "audit-trail":
+        return cmd_audit_trail(args)
+    elif args.command == "compare-versions":
+        return cmd_compare_versions(args)
+    elif args.command == "version-history":
+        return cmd_version_history(args)
     else:
         parser.print_help()
         return 1

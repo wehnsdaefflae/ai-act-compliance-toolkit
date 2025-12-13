@@ -3,20 +3,31 @@ Metadata Storage
 
 Simple storage mechanism for captured compliance metadata.
 Stores data in-memory and provides methods to serialize to JSON.
+Integrates with audit trail and version control for compliance tracking.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 import json
+from .audit_trail import AuditTrail, AuditEventType
+from .version_control import VersionControl
 
 
 class MetadataStorage:
     """
     Storage class for compliance metadata captured from LangChain operations.
+    Includes integrated audit trail and version control for EU AI Act compliance.
     """
 
-    def __init__(self, system_name: str = "unnamed_system"):
-        """Initialize metadata storage."""
+    def __init__(self, system_name: str = "unnamed_system", enable_auditing: bool = True, enable_versioning: bool = True):
+        """
+        Initialize metadata storage.
+
+        Args:
+            system_name: Name of the AI system
+            enable_auditing: Enable audit trail tracking
+            enable_versioning: Enable version control
+        """
         self.system_name = system_name
         self.models: List[Dict[str, Any]] = []
         self.components: List[Dict[str, Any]] = []
@@ -25,15 +36,60 @@ class MetadataStorage:
         self.operational_metrics: Dict[str, Any] = {}
         self.created_at = datetime.now().isoformat()
 
+        # Audit trail and version control
+        self.enable_auditing = enable_auditing
+        self.enable_versioning = enable_versioning
+        self.audit_trail: Optional[AuditTrail] = AuditTrail(system_name) if enable_auditing else None
+        self.version_control: Optional[VersionControl] = VersionControl(system_name) if enable_versioning else None
+
+        # Record initial creation event
+        if self.audit_trail:
+            self.audit_trail.record_event(
+                event_type=AuditEventType.SYSTEM_CREATED,
+                description=f"AI system '{system_name}' metadata storage initialized",
+                actor="system"
+            )
+
+        # Create initial version
+        if self.version_control:
+            self.version_control.commit(
+                metadata=self.get_all_metadata(),
+                description="Initial system creation",
+                author="system"
+            )
+
     def add_model(self, model_info: Dict[str, Any]):
         """Add model metadata."""
         # Avoid duplicates by checking if similar model already exists
+        is_duplicate = False
         for existing in self.models:
             if (existing.get("model_name") == model_info.get("model_name") and
                 existing.get("provider") == model_info.get("provider") and
                 existing.get("parameters") == model_info.get("parameters")):
-                return  # Already captured
+                is_duplicate = True
+                break
+
+        if is_duplicate:
+            return  # Already captured
+
         self.models.append(model_info)
+
+        # Record audit event
+        if self.audit_trail:
+            self.audit_trail.record_event(
+                event_type=AuditEventType.MODEL_ADDED,
+                description=f"Added model: {model_info.get('model_name', 'unknown')}",
+                actor="system",
+                metadata={"model_info": model_info}
+            )
+
+        # Create new version
+        if self.version_control:
+            self.version_control.commit(
+                metadata=self.get_all_metadata(),
+                description=f"Added model: {model_info.get('model_name', 'unknown')}",
+                author="system"
+            )
 
     def add_component(self, component_info: Dict[str, Any]):
         """Add framework component metadata."""
@@ -42,10 +98,33 @@ class MetadataStorage:
     def add_data_source(self, data_source_info: Dict[str, Any]):
         """Add data source metadata."""
         # Avoid duplicates
+        is_duplicate = False
         for existing in self.data_sources:
             if existing.get("data_source") == data_source_info.get("data_source"):
-                return
+                is_duplicate = True
+                break
+
+        if is_duplicate:
+            return
+
         self.data_sources.append(data_source_info)
+
+        # Record audit event
+        if self.audit_trail:
+            self.audit_trail.record_event(
+                event_type=AuditEventType.DATA_SOURCE_ADDED,
+                description=f"Added data source: {data_source_info.get('data_source', 'unknown')}",
+                actor="system",
+                metadata={"data_source_info": data_source_info}
+            )
+
+        # Create new version
+        if self.version_control:
+            self.version_control.commit(
+                metadata=self.get_all_metadata(),
+                description=f"Added data source: {data_source_info.get('data_source', 'unknown')}",
+                author="system"
+            )
 
     def set_risk_assessment(self, risk_assessment: Dict[str, Any]):
         """
@@ -54,7 +133,38 @@ class MetadataStorage:
         Args:
             risk_assessment: Risk assessment data from AIActRiskAssessor
         """
+        old_risk_level = self.risk_assessment.get("risk_level")
+        new_risk_level = risk_assessment.get("risk_level")
+
         self.risk_assessment = risk_assessment
+
+        # Record audit event
+        if self.audit_trail:
+            if old_risk_level and old_risk_level != new_risk_level:
+                self.audit_trail.record_event(
+                    event_type=AuditEventType.RISK_LEVEL_CHANGED,
+                    description=f"Risk level changed from {old_risk_level} to {new_risk_level}",
+                    actor="system",
+                    metadata={"old_level": old_risk_level, "new_level": new_risk_level}
+                )
+            else:
+                self.audit_trail.record_event(
+                    event_type=AuditEventType.RISK_ASSESSMENT_PERFORMED,
+                    description=f"Risk assessment performed: {new_risk_level}",
+                    actor="system",
+                    metadata=risk_assessment
+                )
+
+        # Create new version
+        if self.version_control:
+            description = f"Risk assessment: {new_risk_level}"
+            if old_risk_level and old_risk_level != new_risk_level:
+                description = f"Risk level changed: {old_risk_level} → {new_risk_level}"
+            self.version_control.commit(
+                metadata=self.get_all_metadata(),
+                description=description,
+                author="system"
+            )
 
     def set_operational_metrics(self, metrics: Dict[str, Any]):
         """
@@ -64,6 +174,15 @@ class MetadataStorage:
             metrics: Operational metrics from OperationalMetricsTracker
         """
         self.operational_metrics = metrics
+
+        # Record audit event
+        if self.audit_trail:
+            self.audit_trail.record_event(
+                event_type=AuditEventType.METRICS_RECORDED,
+                description="Operational metrics updated",
+                actor="system",
+                metadata={"total_operations": metrics.get("operations", {}).get("total", 0)}
+            )
 
     def get_all_metadata(self) -> Dict[str, Any]:
         """
@@ -94,7 +213,23 @@ class MetadataStorage:
         if self.operational_metrics:
             metadata["operational_metrics"] = self.operational_metrics
 
+        # Include audit trail summary if available
+        if self.audit_trail:
+            metadata["audit_summary"] = self.audit_trail.generate_summary()
+
+        # Include version control summary if available
+        if self.version_control:
+            metadata["version_info"] = self.version_control.to_dict()
+
         return metadata
+
+    def get_audit_trail(self) -> Optional[AuditTrail]:
+        """Get the audit trail instance."""
+        return self.audit_trail
+
+    def get_version_control(self) -> Optional[VersionControl]:
+        """Get the version control instance."""
+        return self.version_control
 
     def _deduplicate_models(self) -> List[Dict[str, Any]]:
         """Remove duplicate model entries."""
@@ -119,23 +254,39 @@ class MetadataStorage:
                 unique_components.append(component)
         return unique_components
 
-    def save_to_file(self, filepath: str):
+    def save_to_file(self, filepath: str, save_audit: bool = True, save_versions: bool = True):
         """
         Save metadata to a JSON file.
 
         Args:
             filepath: Path to save the JSON file
+            save_audit: Also save audit trail to separate file
+            save_versions: Also save version history to separate file
         """
         metadata = self.get_all_metadata()
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-    def load_from_file(self, filepath: str):
+        # Save audit trail to separate file
+        if save_audit and self.audit_trail:
+            from pathlib import Path
+            audit_path = Path(filepath).with_suffix('.audit.json')
+            self.audit_trail.save_to_file(str(audit_path))
+
+        # Save version history to separate file
+        if save_versions and self.version_control:
+            from pathlib import Path
+            version_path = Path(filepath).with_suffix('.versions.json')
+            self.version_control.save_to_file(str(version_path))
+
+    def load_from_file(self, filepath: str, load_audit: bool = True, load_versions: bool = True):
         """
         Load metadata from a JSON file.
 
         Args:
             filepath: Path to the JSON file
+            load_audit: Also load audit trail from separate file if it exists
+            load_versions: Also load version history from separate file if it exists
         """
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -146,6 +297,20 @@ class MetadataStorage:
             self.risk_assessment = data.get("risk_assessment", {})
             self.operational_metrics = data.get("operational_metrics", {})
             self.created_at = data.get("created_at", datetime.now().isoformat())
+
+        # Load audit trail from separate file if it exists
+        if load_audit and self.audit_trail:
+            from pathlib import Path
+            audit_path = Path(filepath).with_suffix('.audit.json')
+            if audit_path.exists():
+                self.audit_trail.load_from_file(str(audit_path))
+
+        # Load version history from separate file if it exists
+        if load_versions and self.version_control:
+            from pathlib import Path
+            version_path = Path(filepath).with_suffix('.versions.json')
+            if version_path.exists():
+                self.version_control.load_from_file(str(version_path))
 
     def clear(self):
         """Clear all stored metadata."""

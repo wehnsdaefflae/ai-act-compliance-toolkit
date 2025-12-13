@@ -1,0 +1,143 @@
+# {{ report_title }}
+
+**Generated:** {{ report_generated }}
+**System:** {{ system_name }}
+
+---
+
+## Executive Summary
+
+This audit report provides a comprehensive trail of all changes and operations performed on the AI system **{{ system_name }}** to satisfy EU AI Act Article 12 requirements for automatic logging of high-risk AI systems.
+
+### Compliance Status
+
+{% for note in compliance_notes %}
+- {{ note }}
+{% endfor %}
+
+---
+
+## Audit Trail Summary
+
+- **Total Events Recorded:** {{ audit_trail_summary.total_events }}
+- **Audit Trail Created:** {{ audit_trail_summary.audit_trail_created }}
+- **First Event:** {{ audit_trail_summary.first_event_timestamp }}
+- **Last Event:** {{ audit_trail_summary.last_event_timestamp }}
+- **Active Actors:** {{ audit_trail_summary.actors|join(', ') }}
+
+### Event Distribution by Type
+
+| Event Type | Count |
+|------------|-------|
+{% for event_type, count in audit_trail_summary.event_counts.items() %}
+| {{ event_type }} | {{ count }} |
+{% endfor %}
+
+---
+
+## Integrity Verification
+
+{% if integrity_verification.integrity_valid %}
+✓ **PASSED** - All audit events verified successfully
+{% else %}
+⚠ **FAILED** - Some audit events may have been tampered with
+{% endif %}
+
+- **Verification Timestamp:** {{ integrity_verification.verification_timestamp }}
+- **Total Events:** {{ integrity_verification.total_events }}
+- **Verified Events:** {{ integrity_verification.verified }}
+- **Corrupted Events:** {{ integrity_verification.corrupted|length }}
+
+{% if integrity_verification.corrupted %}
+### Corrupted Event IDs
+{% for event_id in integrity_verification.corrupted %}
+- {{ event_id }}
+{% endfor %}
+{% endif %}
+
+---
+
+## High-Priority Compliance Events
+
+The following events are critical for EU AI Act compliance:
+
+{% for event in high_priority_events %}
+### Event: {{ event.event_type }}
+
+- **Event ID:** {{ event.event_id }}
+- **Timestamp:** {{ event.timestamp }}
+- **Description:** {{ event.description }}
+- **Actor:** {{ event.actor }}
+{% if event.metadata %}
+- **Metadata:**
+  ```json
+  {{ event.metadata|tojson(indent=2) }}
+  ```
+{% endif %}
+- **Integrity Hash:** `{{ event.hash }}`
+
+---
+{% endfor %}
+
+## Complete Event Log
+
+Full chronological record of all system events:
+
+{% for event in all_events %}
+### {{ loop.index }}. {{ event.event_type }}
+
+- **Event ID:** {{ event.event_id }}
+- **Timestamp:** {{ event.timestamp }}
+- **Description:** {{ event.description }}
+- **Actor:** {{ event.actor }}
+{% if event.metadata %}
+- **Metadata:** {{ event.metadata }}
+{% endif %}
+- **Integrity Hash:** `{{ event.hash }}`
+
+{% endfor %}
+
+---
+
+## EU AI Act Article 12 Compliance Notes
+
+### Automatic Logging Requirements
+
+Article 12 of the EU AI Act requires high-risk AI systems to have automatic logging capabilities that enable:
+
+1. **Traceability:** Complete record of system operations and changes
+2. **Transparency:** Clear documentation of who changed what and when
+3. **Accountability:** Attribution of changes to specific actors
+4. **Integrity:** Cryptographic verification that logs haven't been tampered with
+
+### Compliance Status
+
+This audit trail satisfies the following Article 12 requirements:
+
+- ✓ Automatic recording of events throughout system lifecycle
+- ✓ Logging of the period of each use of the system
+- ✓ Recording of input data that led to decisions
+- ✓ Recording of persons involved in system operations
+- ✓ Cryptographic integrity protection of audit logs
+
+### Recommendations for Continued Compliance
+
+1. **Regular Audit Reviews:** Review this audit trail quarterly to identify patterns or issues
+2. **Retain Audit Logs:** Maintain audit trails for the period required by law (minimum 6 months, up to 10 years for certain domains)
+3. **Access Control:** Ensure audit logs are protected from unauthorized access or modification
+4. **Backup & Recovery:** Maintain secure backups of audit trails
+5. **Incident Response:** Use audit trail to investigate and respond to system incidents
+
+---
+
+## Audit Report Certification
+
+This audit report was automatically generated on {{ report_generated }} by the AI Act Compliance Toolkit.
+
+**Report Hash:** Verify integrity by comparing cryptographic hashes of events with original audit trail file.
+
+**Audit Trail Location:** Stored in separate `.audit.json` file alongside metadata.
+
+---
+
+*This report satisfies EU AI Act Article 12 requirements for automatic logging and record-keeping of high-risk AI systems.*
