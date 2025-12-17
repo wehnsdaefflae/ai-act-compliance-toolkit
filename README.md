@@ -7,7 +7,13 @@
 
 ## Übersicht
 
-Das **AI Act Compliance Toolkit** ist ein Python-Paket zur automatisierten Extraktion von Compliance-Metadaten aus LangChain-Anwendungen gemäß EU AI Act und DSGVO-Anforderungen. Es implementiert einen "Compliance-as-Code"-Ansatz, der compliance-relevante Informationen direkt während der Entwicklung erfasst.
+Das **AI Act Compliance Toolkit** ist ein Python-Paket zur automatisierten Extraktion von Compliance-Metadaten aus AI/ML-Anwendungen gemäß EU AI Act und DSGVO-Anforderungen. Es implementiert einen "Compliance-as-Code"-Ansatz, der compliance-relevante Informationen direkt während der Entwicklung erfasst.
+
+### Unterstützte Frameworks
+
+- **LangChain**: Vollständige Integration für LLM-Anwendungen
+- **PyTorch**: Monitoring für PyTorch-Modelle, Training und Datasets
+- **TensorFlow/Keras**: Monitoring für TensorFlow/Keras-Modelle mit automatischem Callback-System
 
 ### Lösungsansatz
 
@@ -35,6 +41,8 @@ Das Toolkit erfasst diese Metadaten automatisch während der Entwicklung und ver
 
 ### Grundlegende Verwendung
 
+#### LangChain
+
 ```python
 from aiact_toolkit import LangChainMonitor
 
@@ -49,19 +57,66 @@ llm = ChatOpenAI(model_name="gpt-4", temperature=0.7, max_tokens=500)
 # 3. Erfasste Metadaten abrufen
 metadata = monitor.get_metadata()
 monitor.save_to_file("compliance_metadata.json")
+```
 
-# 4. Compliance-Dokumente generieren
+Vollständiges Beispiel: [examples/basic_usage.py](examples/basic_usage.py)
+
+#### PyTorch
+
+```python
+from aiact_toolkit import PyTorchMonitor
+
+# 1. Monitor initialisieren
+monitor = PyTorchMonitor(system_name="my_pytorch_model")
+monitor.start()
+
+# 2. Modell und Komponenten registrieren
+monitor.register_model(model, name="ResNet50")
+monitor.register_optimizer(optimizer)
+monitor.register_dataset(train_dataset, name="training_data")
+
+# 3. Training-Konfiguration erfassen
+monitor.log_training_config(epochs=100, batch_size=32)
+monitor.save_to_file("pytorch_metadata.json")
+```
+
+Vollständiges Beispiel: [examples/pytorch_example.py](examples/pytorch_example.py)
+
+#### TensorFlow/Keras
+
+```python
+from aiact_toolkit import TensorFlowMonitor
+
+# 1. Monitor initialisieren
+monitor = TensorFlowMonitor(system_name="my_keras_model")
+monitor.start()
+
+# 2. Modell automatisch erfassen
+monitor.register_model(model, name="MobileNetV2")
+
+# 3. Keras Callback für automatisches Tracking verwenden
+callback = monitor.create_keras_callback()
+model.fit(train_data, callbacks=[callback])
+
+monitor.save_to_file("tensorflow_metadata.json")
+```
+
+Vollständiges Beispiel: [examples/tensorflow_example.py](examples/tensorflow_example.py)
+
+#### Compliance-Dokumente generieren
+
+```python
 from jinja2 import Environment, FileSystemLoader
 env = Environment(loader=FileSystemLoader('templates'))
 template = env.get_template('dsgvo_dsfa.md.jinja2')
 document = template.render(**metadata)
 ```
 
-Vollständiges Beispiel: [examples/basic_usage.py](examples/basic_usage.py)
-
 ## Erfasste Metadaten
 
 Das Toolkit extrahiert automatisch:
+
+### LangChain
 
 | Metadatentyp | Beispiele | Abdeckung |
 |--------------|-----------|-----------|
@@ -72,7 +127,25 @@ Das Toolkit extrahiert automatisch:
 | **Framework-Komponenten** | Chains, Tools, Prompts | 90% |
 | **Anbieterinformationen** | OpenAI, Anthropic, HuggingFace, etc. | 100% |
 
-**Gesamtabdeckung: Über 90%** aller compliance-relevanten LangChain-Metadaten
+### PyTorch
+
+| Metadatentyp | Beispiele | Abdeckung |
+|--------------|-----------|-----------|
+| **Modellarchitektur** | Layer-Typen, Parameter-Anzahl, Modellstruktur | 100% |
+| **Training-Konfiguration** | Optimizer, Learning Rate, Batch Size | 100% |
+| **Datasets** | Dataset-Typ, Größe, Split (train/val/test) | 100% |
+| **Hardware** | GPU/CPU, Device-Platzierung | 100% |
+| **Training-Metriken** | Loss, Accuracy pro Epoch | 100% |
+
+### TensorFlow/Keras
+
+| Metadatentyp | Beispiele | Abdeckung |
+|--------------|-----------|-----------|
+| **Modellarchitektur** | Layer-Konfiguration, Input/Output Shapes | 100% |
+| **Training-Konfiguration** | Optimizer, Loss Function, Metrics | 100% |
+| **Datasets** | tf.data.Dataset Info, Batch-Konfiguration | 100% |
+| **Hardware** | GPU/TPU Verfügbarkeit | 100% |
+| **Training-Metriken** | Automatisch via Keras Callback | 100% |
 
 ## Compliance-Vorlagen
 
@@ -125,7 +198,9 @@ ai-act-compliance-toolkit/
 │   └── README.md                       # Vorlagen-Dokumentation
 │
 ├── examples/
-│   ├── basic_usage.py                           # Einfaches Beispiel
+│   ├── basic_usage.py                           # LangChain Beispiel
+│   ├── pytorch_example.py                       # PyTorch Beispiel
+│   ├── tensorflow_example.py                    # TensorFlow Beispiel
 │   ├── llama2_medical_chatbot_integration.py    # Praxistest
 │   ├── generate_llama2_docs.py                  # Dokumentengenerierung
 │   └── generated_outputs/                       # Beispielausgaben
@@ -157,6 +232,15 @@ python tests/test_llama2_medical_chatbot.py
 ### Beispiele ausführen
 
 ```bash
+# LangChain Beispiel
+python examples/basic_usage.py
+
+# PyTorch Beispiel
+python examples/pytorch_example.py
+
+# TensorFlow Beispiel
+python examples/tensorflow_example.py
+
 # Llama2 Medical Chatbot Integration
 python examples/llama2_medical_chatbot_integration.py
 
@@ -213,18 +297,16 @@ Anbieter von General Purpose AI-Systemen müssen Trainingsdaten und Urheberrecht
 - Tracking von Framework-Komponenten
 - Strukturierte Vorlage für Artikel 53 Zusammenfassung
 
-## Einschränkungen (Prototyp-Umfang)
+## Einschränkungen und zukünftige Entwicklungen
 
-Dies ist ein Prototyp zur Machbarkeitsdemonstration für LangChain. Folgende Funktionen sind **nicht im Umfang enthalten**:
+Das Toolkit bietet bereits umfangreiche Funktionalität für LangChain, PyTorch und TensorFlow. Folgende Funktionen sind für zukünftige Entwicklungen geplant:
 
-- PyTorch-Integration
-- TensorFlow-Integration
-- Automatisierte CLI für Dokumentengenerierung
+- Weitere ML-Framework-Integrationen (JAX, Scikit-learn, etc.)
 - PyPI-Paketverteilung
-- Produktionsdatenbankschema
-- Validierte regulatorische Vorlagen
-
-Diese Einschränkungen sind für zukünftige Entwicklungen dokumentiert.
+- Produktionsdatenbankschema für großangelegte Deployments
+- Validierte regulatorische Vorlagen durch Rechtsexperten
+- Automatisierte Compliance-Reports mit Visualisierungen
+- Integration mit MLOps-Plattformen
 
 ## Lizenz
 
