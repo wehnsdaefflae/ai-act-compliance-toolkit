@@ -19,6 +19,15 @@ from .risk_assessment import AIActRiskAssessor, RiskLevel
 from .operational_metrics import OperationalMetricsTracker, MetricsAnalyzer
 from .audit_trail import AuditTrail, AuditEvent, AuditEventType, AuditReportGenerator
 from .version_control import VersionControl, MetadataVersion, VersionControlIntegration
+from .data_governance import (
+    DataGovernanceTracker,
+    DataSource,
+    DataTransformation,
+    DataLineageGraph,
+    DataType,
+    DataQualityStatus,
+    TransformationType
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -37,5 +46,12 @@ __all__ = [
     "AuditReportGenerator",
     "VersionControl",
     "MetadataVersion",
-    "VersionControlIntegration"
+    "VersionControlIntegration",
+    "DataGovernanceTracker",
+    "DataSource",
+    "DataTransformation",
+    "DataLineageGraph",
+    "DataType",
+    "DataQualityStatus",
+    "TransformationType"
 ]

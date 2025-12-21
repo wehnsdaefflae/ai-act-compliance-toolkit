@@ -1,0 +1,310 @@
+# EU AI Act Article 10 - Data and Data Governance
+
+**System Name:** {{ system_name }}
+**Report Generated:** {{ report_generated }}
+**Article Reference:** EU AI Act Article 10 (Data and data governance)
+
+---
+
+## Executive Summary
+
+This document provides comprehensive documentation of data governance practices for {{ system_name }} in compliance with EU AI Act Article 10 requirements for high-risk AI systems.
+
+**Key Statistics:**
+- Total Data Sources: {{ data_sources.total }}
+- Total Transformations: {{ transformations.total }}
+- Data Quality Checks: {{ data_quality.sources_with_quality_metrics }} / {{ data_quality.total_sources }}
+- Compliance Checks Passed: {{ compliance_checks.passed }} / {{ compliance_checks.total }}
+
+---
+
+## 1. Data Sources Overview
+
+### 1.1 Data Sources by Type
+
+{% for data_type, count in data_sources.by_type.items() %}
+{% if count > 0 %}
+- **{{ data_type | capitalize }}**: {{ count }} source(s)
+{% endif %}
+{% endfor %}
+
+### 1.2 Detailed Data Source Inventory
+
+{% if data_sources.sources %}
+{% for source in data_sources.sources %}
+#### {{ source.name }}
+
+- **Source ID:** `{{ source.source_id }}`
+- **Type:** {{ source.data_type }}
+- **Description:** {{ source.description }}
+{% if source.location %}
+- **Location:** {{ source.location }}
+{% endif %}
+{% if source.format %}
+- **Format:** {{ source.format }}
+{% endif %}
+{% if source.size_records %}
+- **Size:** {{ source.size_records }} records
+{% endif %}
+{% if source.collection_date %}
+- **Collection Date:** {{ source.collection_date }}
+{% endif %}
+{% if source.source_origin %}
+- **Original Source:** {{ source.source_origin }}
+{% endif %}
+
+**Compliance Information:**
+{% if source.license %}
+- License: {{ source.license }}
+{% else %}
+- ⚠️ License: Not specified
+{% endif %}
+{% if source.copyright_info %}
+- Copyright: {{ source.copyright_info }}
+{% else %}
+- ⚠️ Copyright: Not specified
+{% endif %}
+{% if source.personal_data %}
+- ⚠️ Contains Personal Data (GDPR compliance required)
+{% endif %}
+{% if source.sensitive_data %}
+- ⚠️ Contains Sensitive Data (Enhanced protection required)
+{% endif %}
+
+**Data Quality:**
+- Quality Status: {{ source.quality_status }}
+{% if source.quality_metrics %}
+- Quality Metrics:
+{% for metric_name, metric_data in source.quality_metrics.items() %}
+  - {{ metric_name }}: {{ metric_data.value }}
+  {% if metric_data.description %}
+    ({{ metric_data.description }})
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if source.parent_sources %}
+**Lineage:**
+- Parent Sources: {{ source.parent_sources | join(', ') }}
+{% endif %}
+
+---
+{% endfor %}
+{% else %}
+No data sources registered.
+{% endif %}
+
+## 2. Data Transformations
+
+### 2.1 Transformations by Type
+
+{% for trans_type, count in transformations.by_type.items() %}
+{% if count > 0 %}
+- **{{ trans_type | replace('_', ' ') | capitalize }}**: {{ count }} transformation(s)
+{% endif %}
+{% endfor %}
+
+### 2.2 Detailed Transformation Log
+
+{% if transformations.transformations %}
+{% for trans in transformations.transformations %}
+#### {{ trans.description }}
+
+- **Transformation ID:** `{{ trans.transformation_id }}`
+- **Type:** {{ trans.transformation_type }}
+- **Performed:** {{ trans.performed_at }}
+- **Performed By:** {{ trans.performed_by }}
+{% if trans.tool_used %}
+- **Tool Used:** {{ trans.tool_used }}
+{% endif %}
+
+**Data Flow:**
+- Input Source(s): {{ trans.input_source_ids | join(', ') }}
+- Output Source: {{ trans.output_source_id }}
+
+{% if trans.parameters %}
+**Parameters:**
+{% for param_name, param_value in trans.parameters.items() %}
+- {{ param_name }}: {{ param_value }}
+{% endfor %}
+{% endif %}
+
+---
+{% endfor %}
+{% else %}
+No transformations recorded.
+{% endif %}
+
+## 3. Data Quality Assessment
+
+### 3.1 Quality Summary
+
+- **Total Data Sources:** {{ data_quality.total_sources }}
+- **Sources with Quality Metrics:** {{ data_quality.sources_with_quality_metrics }}
+
+### 3.2 Quality Distribution
+
+{% for status, count in data_quality.quality_distribution.items() %}
+{% if count > 0 %}
+- **{{ status | capitalize }}:** {{ count }} source(s)
+{% endif %}
+{% endfor %}
+
+{% if data_quality.sources_with_quality_metrics == 0 %}
+⚠️ **Recommendation:** Implement quality metrics assessment for all data sources to ensure compliance with Article 10 requirements.
+{% endif %}
+
+---
+
+## 4. Privacy and Data Protection Compliance
+
+### 4.1 GDPR Compliance Status
+
+- **Sources with Personal Data:** {{ privacy_compliance.personal_data_sources }}
+- **Sources with Sensitive Data:** {{ privacy_compliance.sensitive_data_sources }}
+
+{% if privacy_compliance.personal_data_sources > 0 %}
+⚠️ **GDPR Compliance Required:** System processes personal data. Ensure:
+- Legal basis for processing is documented
+- Data subject rights mechanisms are implemented
+- Data Protection Impact Assessment (DPIA) is completed
+- Appropriate technical and organizational measures are in place
+{% endif %}
+
+### 4.2 Intellectual Property Compliance
+
+- **Sources with License Information:** {{ privacy_compliance.sources_with_license }}
+- **Sources with Copyright Information:** {{ privacy_compliance.sources_with_copyright }}
+
+{% if privacy_compliance.sources_with_license < data_quality.total_sources %}
+⚠️ **Recommendation:** Document license information for all data sources to ensure compliance with copyright and IP regulations.
+{% endif %}
+
+---
+
+## 5. Governance Policies
+
+{% if governance_policies %}
+{% for policy_name, policy_data in governance_policies.items() %}
+### {{ policy_name }}
+
+**Established:** {{ policy_data.added_at }}
+
+{% for key, value in policy_data.details.items() %}
+- **{{ key }}:** {{ value }}
+{% endfor %}
+
+---
+{% endfor %}
+{% else %}
+No governance policies documented.
+
+⚠️ **Recommendation:** Establish and document data governance policies covering:
+- Data collection and acquisition
+- Data quality standards
+- Data retention and deletion
+- Access control and security
+- Privacy protection measures
+{% endif %}
+
+## 6. Compliance Checks
+
+### 6.1 Compliance Check Summary
+
+- **Total Checks Performed:** {{ compliance_checks.total }}
+- **Passed:** {{ compliance_checks.passed }}
+- **Failed:** {{ compliance_checks.failed }}
+
+{% if compliance_checks.failed > 0 %}
+⚠️ **Action Required:** {{ compliance_checks.failed }} compliance check(s) failed. Review and remediate before deployment.
+{% endif %}
+
+### 6.2 Detailed Compliance Check Results
+
+{% if compliance_checks.checks %}
+{% for check in compliance_checks.checks %}
+#### {{ check.check_name }}
+
+- **Type:** {{ check.check_type }}
+- **Status:** {% if check.passed %}✅ PASSED{% else %}❌ FAILED{% endif %}
+- **Performed:** {{ check.performed_at }}
+
+{% if check.details %}
+**Details:**
+{% for key, value in check.details.items() %}
+- {{ key }}: {{ value }}
+{% endfor %}
+{% endif %}
+
+---
+{% endfor %}
+{% else %}
+No compliance checks recorded.
+{% endif %}
+
+## 7. Compliance Assessment
+
+### 7.1 Article 10 Requirements Coverage
+
+| Requirement | Status | Notes |
+|------------|--------|-------|
+| Training data documented | {% if data_sources.total > 0 %}✅ Yes{% else %}❌ No{% endif %} | {{ data_sources.total }} data sources documented |
+| Data quality standards | {% if data_quality.sources_with_quality_metrics > 0 %}✅ Yes{% else %}⚠️ Partial{% endif %} | {{ data_quality.sources_with_quality_metrics }}/{{ data_quality.total_sources }} sources assessed |
+| Data transformations tracked | {% if transformations.total > 0 %}✅ Yes{% else %}❌ No{% endif %} | {{ transformations.total }} transformations recorded |
+| Data lineage maintained | {% if transformations.total > 0 %}✅ Yes{% else %}⚠️ Partial{% endif %} | Lineage graph available |
+| License compliance | {% if privacy_compliance.sources_with_license > 0 %}✅ Yes{% else %}❌ No{% endif %} | {{ privacy_compliance.sources_with_license }}/{{ data_quality.total_sources }} sources licensed |
+| Privacy compliance | {% if privacy_compliance.personal_data_sources == 0 %}✅ N/A{% else %}⚠️ Review{% endif %} | {% if privacy_compliance.personal_data_sources > 0 %}{{ privacy_compliance.personal_data_sources }} sources with personal data{% else %}No personal data{% endif %} |
+
+### 7.2 Recommendations
+
+{% if compliance_checks.failed > 0 %}
+1. **Priority:** Address {{ compliance_checks.failed }} failed compliance checks
+{% endif %}
+{% if data_quality.sources_with_quality_metrics == 0 %}
+2. **High Priority:** Implement data quality assessment for all sources
+{% endif %}
+{% if privacy_compliance.sources_with_license < data_quality.total_sources %}
+3. **Medium Priority:** Document licensing information for all data sources
+{% endif %}
+{% if privacy_compliance.personal_data_sources > 0 %}
+4. **High Priority:** Ensure GDPR compliance for {{ privacy_compliance.personal_data_sources }} sources containing personal data
+{% endif %}
+{% if not governance_policies %}
+5. **Medium Priority:** Establish and document formal data governance policies
+{% endif %}
+
+---
+
+## 8. Responsible Parties
+
+**Data Governance Officer:** [To be specified]
+**Data Protection Officer:** [To be specified]
+**Technical Lead:** [To be specified]
+
+---
+
+## 9. Review and Update Schedule
+
+**Last Review:** {{ report_generated }}
+**Next Review:** [To be scheduled]
+**Review Frequency:** Quarterly (recommended for high-risk AI systems)
+
+---
+
+## 10. Signature and Approval
+
+This data governance documentation has been reviewed and approved:
+
+**Data Governance Officer:**
+Name: ___________________
+Signature: ___________________
+Date: ___________________
+
+**Compliance Officer:**
+Name: ___________________
+Signature: ___________________
+Date: ___________________
+
+---
+
+*This document is generated automatically by the AI Act Compliance Toolkit based on captured metadata and data governance tracking. Manual review and completion of [To be specified] sections is required for full compliance.*

@@ -15,6 +15,7 @@ from .metadata_storage import MetadataStorage
 from .risk_assessment import AIActRiskAssessor
 from .operational_metrics import MetricsAnalyzer
 from .audit_trail import AuditReportGenerator
+from .data_governance import DataGovernanceTracker
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -54,6 +55,15 @@ Examples:
 
   # View version history
   aiact-toolkit version-history metadata.json
+
+  # View data lineage for a data source
+  aiact-toolkit data-lineage metadata.json --source-id training_data_v1
+
+  # View data quality summary
+  aiact-toolkit data-quality metadata.json
+
+  # Generate EU AI Act Article 10 compliance report
+  aiact-toolkit article10-report metadata.json -o article10_report.md
         """
     )
 
@@ -217,6 +227,58 @@ Examples:
         "--since",
         type=int,
         help="Show changes since this version"
+    )
+
+    # Data lineage command
+    lineage_parser = subparsers.add_parser(
+        "data-lineage",
+        help="View data lineage and provenance for a data source"
+    )
+    lineage_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    lineage_parser.add_argument(
+        "--source-id",
+        required=True,
+        help="Data source ID to trace lineage for"
+    )
+    lineage_parser.add_argument(
+        "-o", "--output",
+        help="Save lineage report to file"
+    )
+
+    # Data quality command
+    quality_parser = subparsers.add_parser(
+        "data-quality",
+        help="View data quality summary and privacy compliance"
+    )
+    quality_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    quality_parser.add_argument(
+        "-o", "--output",
+        help="Save quality report to file"
+    )
+    quality_parser.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Show detailed quality metrics for each source"
+    )
+
+    # Article 10 report command
+    article10_parser = subparsers.add_parser(
+        "article10-report",
+        help="Generate EU AI Act Article 10 compliance report"
+    )
+    article10_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    article10_parser.add_argument(
+        "-o", "--output",
+        help="Save Article 10 report to file"
     )
 
     return parser
@@ -721,6 +783,222 @@ def cmd_version_history(args) -> int:
         return 1
 
 
+def cmd_data_lineage(args) -> int:
+    """Handle data-lineage command."""
+    try:
+        # Load metadata with data governance
+        storage = MetadataStorage(enable_data_governance=True)
+        storage.load_from_file(args.metadata, load_data_governance=True)
+
+        governance_tracker = storage.get_data_governance_tracker()
+        if not governance_tracker:
+            print("No data governance information found in metadata file.", file=sys.stderr)
+            return 1
+
+        # Generate lineage report
+        lineage_report = governance_tracker.get_lineage_report(args.source_id)
+
+        if "error" in lineage_report:
+            print(f"Error: {lineage_report['error']}", file=sys.stderr)
+            return 1
+
+        print(f"Data Lineage Report for: {args.source_id}")
+        print(f"System: {governance_tracker.system_name}")
+        print()
+
+        source_info = lineage_report['source']
+        print(f"Data Source: {source_info['name']}")
+        print(f"  Type: {source_info['data_type']}")
+        print(f"  Description: {source_info['description']}")
+        if source_info.get('location'):
+            print(f"  Location: {source_info['location']}")
+        if source_info.get('size_records'):
+            print(f"  Records: {source_info['size_records']}")
+        print()
+
+        print(f"Lineage Depth: {lineage_report['lineage_depth']}")
+        print(f"Total Transformations: {lineage_report['total_transformations']}")
+        print()
+
+        if lineage_report['ancestor_sources']:
+            print("Ancestor Data Sources:")
+            for ancestor in lineage_report['ancestor_sources']:
+                print(f"  - {ancestor['name']} ({ancestor['data_type']})")
+                print(f"    {ancestor['description']}")
+            print()
+
+        if lineage_report['transformations']:
+            print("Transformations Applied:")
+            for trans in lineage_report['transformations']:
+                print(f"  - {trans['transformation_type']}: {trans['description']}")
+                print(f"    Performed: {trans['performed_at']}")
+                if trans.get('tool_used'):
+                    print(f"    Tool: {trans['tool_used']}")
+            print()
+
+        # Save report if requested
+        if args.output:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(lineage_report, f, indent=2, ensure_ascii=False)
+            print(f"✓ Lineage report saved: {args.output}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_data_quality(args) -> int:
+    """Handle data-quality command."""
+    try:
+        # Load metadata with data governance
+        storage = MetadataStorage(enable_data_governance=True)
+        storage.load_from_file(args.metadata, load_data_governance=True)
+
+        governance_tracker = storage.get_data_governance_tracker()
+        if not governance_tracker:
+            print("No data governance information found in metadata file.", file=sys.stderr)
+            return 1
+
+        print(f"Data Quality Summary for: {governance_tracker.system_name}")
+        print()
+
+        # Data quality summary
+        quality = governance_tracker.get_data_quality_summary()
+        print(f"Total Data Sources: {quality['total_sources']}")
+        if quality['total_sources'] > 0:
+            print(f"Sources with Quality Metrics: {quality['sources_with_quality_metrics']}")
+            print()
+            print("Quality Distribution:")
+            for status, count in quality['quality_distribution'].items():
+                if count > 0:
+                    print(f"  {status}: {count}")
+        print()
+
+        # Privacy summary
+        privacy = governance_tracker.get_privacy_summary()
+        print("Privacy & Compliance:")
+        print(f"  Personal Data Sources: {privacy['personal_data_sources']}")
+        print(f"  Sensitive Data Sources: {privacy['sensitive_data_sources']}")
+        print(f"  Sources with License: {privacy['sources_with_license']}")
+        print(f"  Sources with Copyright Info: {privacy['sources_with_copyright']}")
+        print()
+
+        # Detailed view if requested
+        if args.detailed and governance_tracker.lineage_graph.sources:
+            print("Detailed Source Information:")
+            for source in governance_tracker.lineage_graph.sources.values():
+                print(f"\n  {source.name} ({source.source_id})")
+                print(f"    Type: {source.data_type.value}")
+                print(f"    Quality Status: {source.quality_status.value}")
+                if source.quality_metrics:
+                    print(f"    Quality Metrics:")
+                    for metric, data in source.quality_metrics.items():
+                        print(f"      - {metric}: {data['value']}")
+                if source.personal_data:
+                    print(f"    ⚠ Contains Personal Data (GDPR compliance required)")
+                if source.sensitive_data:
+                    print(f"    ⚠ Contains Sensitive Data (Enhanced protection required)")
+
+        # Save report if requested
+        if args.output:
+            report_data = {
+                "system_name": governance_tracker.system_name,
+                "quality_summary": quality,
+                "privacy_summary": privacy,
+                "generated_at": datetime.now().isoformat()
+            }
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(report_data, f, indent=2, ensure_ascii=False)
+            print(f"✓ Quality report saved: {args.output}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_article10_report(args) -> int:
+    """Handle article10-report command."""
+    try:
+        # Load metadata with data governance
+        storage = MetadataStorage(enable_data_governance=True)
+        storage.load_from_file(args.metadata, load_data_governance=True)
+
+        governance_tracker = storage.get_data_governance_tracker()
+        if not governance_tracker:
+            print("No data governance information found in metadata file.", file=sys.stderr)
+            return 1
+
+        # Generate Article 10 compliance report
+        report = governance_tracker.generate_article10_report()
+
+        print(f"EU AI Act Article 10 Compliance Report")
+        print(f"System: {report['system_name']}")
+        print(f"Generated: {report['report_generated']}")
+        print()
+
+        print("Data Sources Summary:")
+        print(f"  Total Sources: {report['data_sources']['total']}")
+        print(f"  By Type:")
+        for dtype, count in report['data_sources']['by_type'].items():
+            if count > 0:
+                print(f"    {dtype}: {count}")
+        print()
+
+        print("Data Transformations:")
+        print(f"  Total Transformations: {report['transformations']['total']}")
+        if report['transformations']['total'] > 0:
+            print(f"  By Type:")
+            for ttype, count in report['transformations']['by_type'].items():
+                if count > 0:
+                    print(f"    {ttype}: {count}")
+        print()
+
+        print("Data Quality:")
+        print(f"  Total Sources: {report['data_quality']['total_sources']}")
+        print(f"  Sources with Metrics: {report['data_quality']['sources_with_quality_metrics']}")
+        print()
+
+        print("Privacy Compliance:")
+        print(f"  Personal Data Sources: {report['privacy_compliance']['personal_data_sources']}")
+        print(f"  Sensitive Data Sources: {report['privacy_compliance']['sensitive_data_sources']}")
+        print(f"  Licensed Sources: {report['privacy_compliance']['sources_with_license']}")
+        print()
+
+        print("Compliance Checks:")
+        print(f"  Total Checks: {report['compliance_checks']['total']}")
+        print(f"  Passed: {report['compliance_checks']['passed']}")
+        print(f"  Failed: {report['compliance_checks']['failed']}")
+        print()
+
+        if report['compliance_checks']['failed'] > 0:
+            print("⚠ Warning: Some compliance checks failed. Review required.")
+
+        # Save report if requested
+        if args.output:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"✓ Article 10 compliance report saved: {args.output}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -747,6 +1025,12 @@ def main():
         return cmd_compare_versions(args)
     elif args.command == "version-history":
         return cmd_version_history(args)
+    elif args.command == "data-lineage":
+        return cmd_data_lineage(args)
+    elif args.command == "data-quality":
+        return cmd_data_quality(args)
+    elif args.command == "article10-report":
+        return cmd_article10_report(args)
     else:
         parser.print_help()
         return 1

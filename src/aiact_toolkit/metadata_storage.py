@@ -11,6 +11,7 @@ from datetime import datetime
 import json
 from .audit_trail import AuditTrail, AuditEventType
 from .version_control import VersionControl
+from .data_governance import DataGovernanceTracker
 
 
 class MetadataStorage:
@@ -19,7 +20,7 @@ class MetadataStorage:
     Includes integrated audit trail and version control for EU AI Act compliance.
     """
 
-    def __init__(self, system_name: str = "unnamed_system", enable_auditing: bool = True, enable_versioning: bool = True):
+    def __init__(self, system_name: str = "unnamed_system", enable_auditing: bool = True, enable_versioning: bool = True, enable_data_governance: bool = True):
         """
         Initialize metadata storage.
 
@@ -27,6 +28,7 @@ class MetadataStorage:
             system_name: Name of the AI system
             enable_auditing: Enable audit trail tracking
             enable_versioning: Enable version control
+            enable_data_governance: Enable data governance and lineage tracking
         """
         self.system_name = system_name
         self.models: List[Dict[str, Any]] = []
@@ -39,8 +41,10 @@ class MetadataStorage:
         # Audit trail and version control
         self.enable_auditing = enable_auditing
         self.enable_versioning = enable_versioning
+        self.enable_data_governance = enable_data_governance
         self.audit_trail: Optional[AuditTrail] = AuditTrail(system_name) if enable_auditing else None
         self.version_control: Optional[VersionControl] = VersionControl(system_name) if enable_versioning else None
+        self.data_governance_tracker: Optional[DataGovernanceTracker] = DataGovernanceTracker(system_name) if enable_data_governance else None
 
         # Record initial creation event
         if self.audit_trail:
@@ -221,6 +225,12 @@ class MetadataStorage:
         if self.version_control:
             metadata["version_info"] = self.version_control.to_dict()
 
+        # Include data governance information if available
+        if self.data_governance_tracker:
+            metadata["data_governance"] = self.data_governance_tracker.to_dict()
+            metadata["data_quality_summary"] = self.data_governance_tracker.get_data_quality_summary()
+            metadata["privacy_summary"] = self.data_governance_tracker.get_privacy_summary()
+
         return metadata
 
     def get_audit_trail(self) -> Optional[AuditTrail]:
@@ -230,6 +240,19 @@ class MetadataStorage:
     def get_version_control(self) -> Optional[VersionControl]:
         """Get the version control instance."""
         return self.version_control
+
+    def get_data_governance_tracker(self) -> Optional[DataGovernanceTracker]:
+        """Get the data governance tracker instance."""
+        return self.data_governance_tracker
+
+    def set_data_governance_tracker(self, tracker: DataGovernanceTracker):
+        """
+        Set or replace the data governance tracker.
+
+        Args:
+            tracker: DataGovernanceTracker instance
+        """
+        self.data_governance_tracker = tracker
 
     def _deduplicate_models(self) -> List[Dict[str, Any]]:
         """Remove duplicate model entries."""
@@ -254,7 +277,7 @@ class MetadataStorage:
                 unique_components.append(component)
         return unique_components
 
-    def save_to_file(self, filepath: str, save_audit: bool = True, save_versions: bool = True):
+    def save_to_file(self, filepath: str, save_audit: bool = True, save_versions: bool = True, save_data_governance: bool = True):
         """
         Save metadata to a JSON file.
 
@@ -262,6 +285,7 @@ class MetadataStorage:
             filepath: Path to save the JSON file
             save_audit: Also save audit trail to separate file
             save_versions: Also save version history to separate file
+            save_data_governance: Also save data governance to separate file
         """
         metadata = self.get_all_metadata()
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -279,7 +303,13 @@ class MetadataStorage:
             version_path = Path(filepath).with_suffix('.versions.json')
             self.version_control.save_to_file(str(version_path))
 
-    def load_from_file(self, filepath: str, load_audit: bool = True, load_versions: bool = True):
+        # Save data governance to separate file
+        if save_data_governance and self.data_governance_tracker:
+            from pathlib import Path
+            governance_path = Path(filepath).with_suffix('.governance.json')
+            self.data_governance_tracker.save_to_file(str(governance_path))
+
+    def load_from_file(self, filepath: str, load_audit: bool = True, load_versions: bool = True, load_data_governance: bool = True):
         """
         Load metadata from a JSON file.
 
@@ -287,6 +317,7 @@ class MetadataStorage:
             filepath: Path to the JSON file
             load_audit: Also load audit trail from separate file if it exists
             load_versions: Also load version history from separate file if it exists
+            load_data_governance: Also load data governance from separate file if it exists
         """
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -311,6 +342,13 @@ class MetadataStorage:
             version_path = Path(filepath).with_suffix('.versions.json')
             if version_path.exists():
                 self.version_control.load_from_file(str(version_path))
+
+        # Load data governance from separate file if it exists
+        if load_data_governance and self.data_governance_tracker:
+            from pathlib import Path
+            governance_path = Path(filepath).with_suffix('.governance.json')
+            if governance_path.exists():
+                self.data_governance_tracker = DataGovernanceTracker.load_from_file(str(governance_path))
 
     def clear(self):
         """Clear all stored metadata."""
