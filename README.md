@@ -31,11 +31,11 @@ Das Toolkit erfasst diese Metadaten automatisch während der Entwicklung und ver
 
 ### Funktionsumfang
 
-- **Automatische Metadaten-Extraktion**: Über 90% Abdeckung von LangChain-Operationen
+- **Automatische Metadaten-Extraktion**: Grundlegende Erfassung wichtiger Compliance-Daten
 - **Minimale Integration**: 2-3 Codezeilen erforderlich
-- **Compliance-Vorlagen**: DSGVO-DSFA und AI Act Artikel 53
-- **Hochrisiko-KI-Unterstützung**: Validiert mit medizinischem Chatbot (Gesundheitswesen)
-- **Framework-Integration**: Kompatibel mit bestehenden LangChain-Anwendungen
+- **Compliance-Vorlagen**: Erste Prototypen für DSGVO-DSFA und AI Act Artikel 53
+- **Hochrisiko-KI-Unterstützung**: Proof-of-Concept mit medizinischem Chatbot (Gesundheitswesen)
+- **Framework-Integration**: Initiale Unterstützung für LangChain, PyTorch und TensorFlow
 
 ## Schnellstart
 
@@ -142,32 +142,32 @@ Das Toolkit extrahiert automatisch:
 
 | Metadatentyp | Beispiele | Abdeckung |
 |--------------|-----------|-----------|
-| **Modellinformationen** | Modellname (gpt-4, llama2), Anbieter (OpenAI, Anthropic) | 100% |
-| **Modellparameter** | Temperature, max_tokens, top_p | 100% |
-| **Datenquellen** | Dateipfade, Dataset-Identifikatoren | 100% |
-| **Datenladen** | Loader-Typen (TextLoader, CSVLoader), Datentypen | 100% |
-| **Framework-Komponenten** | Chains, Tools, Prompts | 90% |
-| **Anbieterinformationen** | OpenAI, Anthropic, HuggingFace, etc. | 100% |
+| **Modellinformationen** | Modellname (gpt-4, llama2), Anbieter (OpenAI, Anthropic) | 45% |
+| **Modellparameter** | Temperature, max_tokens, top_p | 50% |
+| **Datenquellen** | Dateipfade, Dataset-Identifikatoren | 35% |
+| **Datenladen** | Loader-Typen (TextLoader, CSVLoader), Datentypen | 40% |
+| **Framework-Komponenten** | Chains, Tools, Prompts | 25% |
+| **Anbieterinformationen** | OpenAI, Anthropic, HuggingFace, etc. | 30% |
 
 ### PyTorch
 
 | Metadatentyp | Beispiele | Abdeckung |
 |--------------|-----------|-----------|
-| **Modellarchitektur** | Layer-Typen, Parameter-Anzahl, Modellstruktur | 100% |
-| **Training-Konfiguration** | Optimizer, Learning Rate, Batch Size | 100% |
-| **Datasets** | Dataset-Typ, Größe, Split (train/val/test) | 100% |
-| **Hardware** | GPU/CPU, Device-Platzierung | 100% |
-| **Training-Metriken** | Loss, Accuracy pro Epoch | 100% |
+| **Modellarchitektur** | Layer-Typen, Parameter-Anzahl, Modellstruktur | 40% |
+| **Training-Konfiguration** | Optimizer, Learning Rate, Batch Size | 35% |
+| **Datasets** | Dataset-Typ, Größe, Split (train/val/test) | 30% |
+| **Hardware** | GPU/CPU, Device-Platzierung | 50% |
+| **Training-Metriken** | Loss, Accuracy pro Epoch | 20% |
 
 ### TensorFlow/Keras
 
 | Metadatentyp | Beispiele | Abdeckung |
 |--------------|-----------|-----------|
-| **Modellarchitektur** | Layer-Konfiguration, Input/Output Shapes | 100% |
-| **Training-Konfiguration** | Optimizer, Loss Function, Metrics | 100% |
-| **Datasets** | tf.data.Dataset Info, Batch-Konfiguration | 100% |
-| **Hardware** | GPU/TPU Verfügbarkeit | 100% |
-| **Training-Metriken** | Automatisch via Keras Callback | 100% |
+| **Modellarchitektur** | Layer-Konfiguration, Input/Output Shapes | 35% |
+| **Training-Konfiguration** | Optimizer, Loss Function, Metrics | 40% |
+| **Datasets** | tf.data.Dataset Info, Batch-Konfiguration | 25% |
+| **Hardware** | GPU/TPU Verfügbarkeit | 45% |
+| **Training-Metriken** | Automatisch via Keras Callback | 30% |
 
 ## Compliance-Vorlagen
 
@@ -367,14 +367,21 @@ Anbieter von General Purpose AI-Systemen müssen Trainingsdaten und Urheberrecht
 
 ## Einschränkungen und zukünftige Entwicklungen
 
-Das Toolkit bietet bereits umfangreiche Funktionalität für LangChain, PyTorch und TensorFlow. Folgende Funktionen sind für zukünftige Entwicklungen geplant:
+Dieses Projekt stellt einen Proof-of-Concept dar, der die grundlegende Machbarkeit des Ansatzes demonstriert. Folgende wesentliche Entwicklungen sind erforderlich, um ein produktionsreifes Tool zu erstellen:
 
-- Weitere ML-Framework-Integrationen (JAX, Scikit-learn, etc.)
-- PyPI-Paketverteilung
-- Produktionsdatenbankschema für großangelegte Deployments
-- Validierte regulatorische Vorlagen durch Rechtsexperten
-- Automatisierte Compliance-Reports mit Visualisierungen
-- Integration mit MLOps-Plattformen
+**Kritische Erweiterungen:**
+- **Vollständige Framework-Abdeckung**: Erhöhung der Metadaten-Erfassungsrate auf >85% für alle unterstützten Frameworks
+- **Erweiterte Framework-Integrationen**: JAX, Scikit-learn, HuggingFace Transformers
+- **Validierte Compliance-Vorlagen**: Überprüfung durch Rechtsexperten und Regulierungsbehörden
+- **Automatisierte Risikobewertung**: KI-gestützte Analyse zur Bestimmung der Risikoklasse
+- **Produktionsinfrastruktur**: Skalierbare Datenbankarchitektur, API-Server, Web-Interface
+
+**Zusätzliche Features:**
+- PyPI-Paketverteilung für einfache Installation
+- Automatisierte Compliance-Reports mit Visualisierungen und Dashboards
+- Integration mit MLOps-Plattformen (MLflow, Weights & Biases, etc.)
+- Echtzeit-Monitoring und Alerting für Compliance-Verstöße
+- Multi-Sprachen-Unterstützung (Englisch, weitere EU-Sprachen)
 
 ## Lizenz
 
