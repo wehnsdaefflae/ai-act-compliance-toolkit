@@ -28,6 +28,18 @@ from .data_governance import (
     DataQualityStatus,
     TransformationType
 )
+from .model_card import (
+    ModelCard,
+    ModelCardGenerator,
+    ModelDetails,
+    IntendedUse,
+    PerformanceMetric,
+    TrainingData,
+    EthicalConsiderations,
+    Limitations,
+    RegulatoryCompliance,
+    generate_model_cards_for_all_models
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -53,5 +65,15 @@ __all__ = [
     "DataLineageGraph",
     "DataType",
     "DataQualityStatus",
-    "TransformationType"
+    "TransformationType",
+    "ModelCard",
+    "ModelCardGenerator",
+    "ModelDetails",
+    "IntendedUse",
+    "PerformanceMetric",
+    "TrainingData",
+    "EthicalConsiderations",
+    "Limitations",
+    "RegulatoryCompliance",
+    "generate_model_cards_for_all_models"
 ]

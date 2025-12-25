@@ -103,6 +103,28 @@ monitor.save_to_file("tensorflow_metadata.json")
 
 Vollständiges Beispiel: [examples/tensorflow_example.py](examples/tensorflow_example.py)
 
+#### Model Cards generieren
+
+```python
+from aiact_toolkit import ModelCardGenerator
+
+# Model Card aus Metadaten generieren
+generator = ModelCardGenerator()
+model_card = generator.generate_from_metadata(metadata)
+
+# Als Markdown speichern
+from aiact_toolkit import DocumentGenerator
+doc_gen = DocumentGenerator()
+doc_gen.generate_document(
+    template_name="model_card.md.jinja2",
+    metadata=model_card.to_dict(),
+    output_path="model_card.md"
+)
+
+# Als JSON speichern
+model_card.save_json("model_card.json")
+```
+
 #### Compliance-Dokumente generieren
 
 ```python
@@ -149,7 +171,36 @@ Das Toolkit extrahiert automatisch:
 
 ## Compliance-Vorlagen
 
-### 1. DSGVO-DSFA (Datenschutz-Folgenabschätzung)
+### 1. Model Cards (EU AI Act Artikel 13 - Transparenz)
+
+Model Cards sind standardisierte Dokumentationen von ML-Modellen, die Transparenz und verantwortungsvolle KI-Praktiken unterstützen.
+
+**Automatisch befüllte Abschnitte:**
+- Modelldetails (Name, Version, Architektur, Framework)
+- Vorgesehene Verwendungszwecke
+- Performance-Metriken
+- Trainingsdaten-Informationen
+- Ethische Überlegungen
+- Einschränkungen und Empfehlungen
+- EU AI Act Compliance-Status
+
+**Format-Optionen:**
+- Markdown (für Dokumentation)
+- JSON (für maschinelle Verarbeitung)
+
+**Verwendung:**
+```bash
+# Einzelne Model Card generieren
+aiact-toolkit generate-model-card metadata.json -o model_card.md
+
+# Model Cards für alle Modelle generieren
+aiact-toolkit generate-model-card metadata.json --all -o model_cards/
+
+# Als JSON exportieren
+aiact-toolkit generate-model-card metadata.json --format json -o model_card.json
+```
+
+### 2. DSGVO-DSFA (Datenschutz-Folgenabschätzung)
 
 Erforderlich für Hochrisiko-KI-Systeme, die personenbezogene Daten verarbeiten (DSGVO Artikel 35).
 
@@ -163,7 +214,7 @@ Erforderlich für Hochrisiko-KI-Systeme, die personenbezogene Daten verarbeiten 
 - Risikobewertung
 - Abhilfemaßnahmen
 
-### 2. Artikel 53 Zusammenfassung (AI Act GPAI-Transparenz)
+### 3. Artikel 53 Zusammenfassung (AI Act GPAI-Transparenz)
 
 Erforderlich für General Purpose AI-Systeme (AI Act Artikel 53).
 
@@ -189,12 +240,27 @@ ai-act-compliance-toolkit/
 │
 ├── src/aiact_toolkit/
 │   ├── __init__.py
-│   ├── langchain_monitor.py    # Haupt-Plugin (~180 Zeilen)
-│   └── metadata_storage.py     # Speichermechanismus
+│   ├── langchain_monitor.py    # LangChain Integration
+│   ├── pytorch_monitor.py      # PyTorch Integration
+│   ├── tensorflow_monitor.py   # TensorFlow Integration
+│   ├── metadata_storage.py     # Speichermechanismus
+│   ├── model_card.py           # Model Card Generator
+│   ├── risk_assessment.py      # Risikobewertung
+│   ├── audit_trail.py          # Audit Trail (Artikel 12)
+│   ├── version_control.py      # Versionskontrolle
+│   ├── data_governance.py      # Data Governance (Artikel 10)
+│   ├── operational_metrics.py  # Metriken-Tracking
+│   ├── document_generator.py   # Dokumentengenerierung
+│   └── cli.py                  # CLI-Tool
 │
 ├── templates/
-│   ├── dsgvo_dsfa.md.jinja2           # DSGVO-DSFA-Vorlage
-│   ├── article_53_summary.md.jinja2   # Artikel 53-Vorlage
+│   ├── model_card.md.jinja2            # Model Card-Vorlage (Artikel 13)
+│   ├── dsgvo_dsfa.md.jinja2            # DSGVO-DSFA-Vorlage
+│   ├── article_53_summary.md.jinja2    # Artikel 53-Vorlage
+│   ├── risk_assessment_report.md.jinja2 # Risikobewertungs-Bericht
+│   ├── audit_report.md.jinja2          # Audit-Bericht
+│   ├── operational_report.md.jinja2    # Operational-Bericht
+│   ├── article10_data_governance.md.jinja2  # Artikel 10-Bericht
 │   └── README.md                       # Vorlagen-Dokumentation
 │
 ├── examples/
@@ -276,10 +342,12 @@ Erfolgreich integriert mit [Llama2 Medical Chatbot](https://github.com/AIAnytime
 Hochrisiko-KI-Systeme (Gesundheitswesen, Bildung, Beschäftigung, kritische Infrastruktur) erfordern umfassende Dokumentation gemäß AI Act Anhänge III, XI und XII.
 
 **Vom Toolkit bereitgestellt:**
-- Automatische Erfassung von über 10 erforderlichen Metadatenfeldern
-- Vorlage für Risikobewertungsdokumentation
-- DSGVO-DSFA-Integration für personenbezogene Datenverarbeitung
-- Audit-Trail für Modell- und Datennutzung
+- **Model Cards (Artikel 13):** Standardisierte Modelldokumentation für Transparenz
+- **Automatische Erfassung** von über 10 erforderlichen Metadatenfeldern
+- **Risikobewertungsdokumentation:** Automatische Risikoeinstufung und -berichte
+- **DSGVO-DSFA-Integration** für personenbezogene Datenverarbeitung
+- **Audit-Trail (Artikel 12):** Vollständige Nachverfolgbarkeit von Modell- und Datennutzung
+- **Data Governance (Artikel 10):** Datenherkunft und Qualitätsverfolgung
 
 **Manuell zu ergänzen:**
 - Risikobewertung und Abhilfestrategien

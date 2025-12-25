@@ -1,0 +1,363 @@
+# Model Card: {{ model_details.name }}
+
+**Version:** {{ model_details.version }}
+**Generated:** {{ generated_date }}
+**Model Card Version:** {{ card_version }}
+
+---
+
+## Model Details
+
+### Overview
+
+- **Model Name:** {{ model_details.name }}
+- **Model Type:** {{ model_details.model_type }}
+{%- if model_details.architecture %}
+- **Architecture:** {{ model_details.architecture }}
+{%- endif %}
+{%- if model_details.framework %}
+- **Framework:** {{ model_details.framework }}
+{%- endif %}
+{%- if model_details.model_date %}
+- **Model Date:** {{ model_details.model_date }}
+{%- endif %}
+
+### Description
+
+{{ model_details.description }}
+
+### Developers and Contact
+
+{%- if model_details.developers %}
+- **Developers:** {{ model_details.developers }}
+{%- endif %}
+{%- if model_details.organization %}
+- **Organization:** {{ model_details.organization }}
+{%- endif %}
+{%- if model_details.contact %}
+- **Contact:** {{ model_details.contact }}
+{%- endif %}
+
+### Licensing
+
+{%- if model_details.license %}
+- **License:** {{ model_details.license }}
+{%- else %}
+- **License:** Not specified
+{%- endif %}
+
+{%- if model_details.citation %}
+
+### Citation
+
+```
+{{ model_details.citation }}
+```
+{%- endif %}
+
+---
+
+## Intended Use
+
+### Primary Use Cases
+
+{%- if intended_use.use_case_description %}
+{{ intended_use.use_case_description }}
+{%- endif %}
+
+{%- if intended_use.primary_uses %}
+{% for use in intended_use.primary_uses %}
+- {{ use }}
+{%- endfor %}
+{%- endif %}
+
+{%- if intended_use.application_domain %}
+
+**Application Domain:** {{ intended_use.application_domain }}
+{%- endif %}
+
+### Primary Users
+
+{%- if intended_use.primary_users %}
+{% for user in intended_use.primary_users %}
+- {{ user }}
+{%- endfor %}
+{%- endif %}
+
+{%- if intended_use.out_of_scope %}
+
+### Out-of-Scope Uses
+
+The following uses are explicitly out-of-scope for this model:
+
+{% for item in intended_use.out_of_scope %}
+- {{ item }}
+{%- endfor %}
+{%- endif %}
+
+---
+
+## Performance
+
+{%- if performance %}
+
+The model has been evaluated on the following metrics:
+
+| Metric | Value | Description |
+|--------|-------|-------------|
+{%- for metric in performance %}
+| {{ metric.metric_name }} | {{ metric.metric_value }} | {{ metric.description or "N/A" }} |
+{%- endfor %}
+
+{%- for metric in performance %}
+{%- if metric.threshold %}
+**Note:** {{ metric.metric_name }} has a recommended threshold of {{ metric.threshold }}.
+{%- endif %}
+{%- endfor %}
+
+{%- else %}
+
+Performance metrics not yet available. This model is under development or evaluation.
+
+{%- endif %}
+
+---
+
+## Training Data
+
+{%- if training_data %}
+
+### Description
+
+{{ training_data.description }}
+
+### Data Sources
+
+{%- if training_data.data_sources %}
+{% for source in training_data.data_sources %}
+- {{ source }}
+{%- endfor %}
+{%- else %}
+Data sources not specified.
+{%- endif %}
+
+{%- if training_data.size %}
+
+### Dataset Size
+
+{{ training_data.size }}
+{%- endif %}
+
+{%- if training_data.data_type %}
+
+### Data Type
+
+{{ training_data.data_type }}
+{%- endif %}
+
+{%- if training_data.preprocessing %}
+
+### Preprocessing
+
+The following preprocessing steps were applied:
+
+{% for step in training_data.preprocessing %}
+- {{ step }}
+{%- endfor %}
+{%- endif %}
+
+{%- if training_data.time_period %}
+
+### Time Period
+
+Data collected during: {{ training_data.time_period }}
+{%- endif %}
+
+{%- if training_data.geographic_coverage %}
+
+### Geographic Coverage
+
+{{ training_data.geographic_coverage }}
+{%- endif %}
+
+{%- if training_data.language %}
+
+### Language
+
+{{ training_data.language }}
+{%- endif %}
+
+### Privacy Considerations
+
+{%- if training_data.personal_data %}
+⚠️ **Contains Personal Data:** This model was trained on data containing personal information. GDPR compliance measures are required.
+{%- endif %}
+
+{%- if training_data.sensitive_data %}
+⚠️ **Contains Sensitive Data:** This model was trained on sensitive data requiring enhanced protection measures.
+{%- endif %}
+
+{%- if not training_data.personal_data and not training_data.sensitive_data %}
+✓ This model does not use personal or sensitive data for training.
+{%- endif %}
+
+{%- else %}
+
+Training data information not available.
+
+{%- endif %}
+
+---
+
+{%- if ethical_considerations %}
+
+## Ethical Considerations
+
+{%- if ethical_considerations.risks %}
+
+### Risks and Harms
+
+{% for risk in ethical_considerations.risks %}
+- {{ risk }}
+{%- endfor %}
+{%- endif %}
+
+{%- if ethical_considerations.biases %}
+
+### Known Biases
+
+{% for bias in ethical_considerations.biases %}
+- {{ bias }}
+{%- endfor %}
+{%- endif %}
+
+{%- if ethical_considerations.fairness_assessment %}
+
+### Fairness Assessment
+
+{{ ethical_considerations.fairness_assessment }}
+{%- endif %}
+
+{%- if ethical_considerations.human_oversight %}
+
+### Human Oversight
+
+{{ ethical_considerations.human_oversight }}
+{%- endif %}
+
+{%- if ethical_considerations.privacy_measures %}
+
+### Privacy Protection Measures
+
+{% for measure in ethical_considerations.privacy_measures %}
+- {{ measure }}
+{%- endfor %}
+{%- endif %}
+
+{%- if ethical_considerations.environmental_impact %}
+
+### Environmental Impact
+
+{{ ethical_considerations.environmental_impact }}
+{%- endif %}
+
+---
+{%- endif %}
+
+{%- if limitations %}
+
+## Limitations and Recommendations
+
+{%- if limitations.technical_limitations %}
+
+### Technical Limitations
+
+{% for limitation in limitations.technical_limitations %}
+- {{ limitation }}
+{%- endfor %}
+{%- endif %}
+
+{%- if limitations.known_biases %}
+
+### Known Biases
+
+{% for bias in limitations.known_biases %}
+- {{ bias }}
+{%- endfor %}
+{%- endif %}
+
+{%- if limitations.edge_cases %}
+
+### Edge Cases
+
+The following edge cases have been identified:
+
+{% for case in limitations.edge_cases %}
+- {{ case }}
+{%- endfor %}
+{%- endif %}
+
+{%- if limitations.recommendations %}
+
+### Recommendations for Use
+
+{% for rec in limitations.recommendations %}
+- {{ rec }}
+{%- endfor %}
+{%- endif %}
+
+---
+{%- endif %}
+
+{%- if regulatory_compliance %}
+
+## Regulatory Compliance
+
+### EU AI Act Compliance
+
+{%- if regulatory_compliance.eu_ai_act_category %}
+- **AI Act Category:** {{ regulatory_compliance.eu_ai_act_category }}
+{%- endif %}
+{%- if regulatory_compliance.risk_level %}
+- **Risk Level:** {{ regulatory_compliance.risk_level|upper }}
+{%- endif %}
+
+### Compliance Status
+
+| Requirement | Status |
+|-------------|--------|
+| Article 13 (Transparency) | {{ "✓ Compliant" if regulatory_compliance.article_13_transparency else "✗ Non-compliant" }} |
+| Article 14 (Human Oversight) | {{ "✓ Enabled" if regulatory_compliance.article_14_human_oversight else "⚠ Not enabled" }} |
+{%- if regulatory_compliance.gdpr_compliant is not none %}
+| GDPR Compliance | {{ "✓ Compliant" if regulatory_compliance.gdpr_compliant else "⚠ Review required" }} |
+{%- endif %}
+
+{%- if regulatory_compliance.compliance_documentation %}
+
+### Available Documentation
+
+{% for doc in regulatory_compliance.compliance_documentation %}
+- {{ doc }}
+{%- endfor %}
+{%- endif %}
+
+---
+{%- endif %}
+
+{%- if additional_info %}
+
+## Additional Information
+
+{%- for key, value in additional_info.items() %}
+- **{{ key|replace("_", " ")|title }}:** {{ value }}
+{%- endfor %}
+
+{%- endif %}
+
+---
+
+## Document Generation
+
+This model card was automatically generated using the [AI Act Compliance Toolkit](https://github.com/wehnsdaefflae/ai-act-compliance-toolkit) on {{ generated_date }}.
+
+For questions or updates, please contact the model developers.

@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from typing import Optional
 import argparse
+from datetime import datetime
 
 from .document_generator import DocumentGenerator
 from .metadata_storage import MetadataStorage
@@ -16,6 +17,7 @@ from .risk_assessment import AIActRiskAssessor
 from .operational_metrics import MetricsAnalyzer
 from .audit_trail import AuditReportGenerator
 from .data_governance import DataGovernanceTracker
+from .model_card import ModelCardGenerator, generate_model_cards_for_all_models
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -64,6 +66,12 @@ Examples:
 
   # Generate EU AI Act Article 10 compliance report
   aiact-toolkit article10-report metadata.json -o article10_report.md
+
+  # Generate model card for transparency and documentation
+  aiact-toolkit generate-model-card metadata.json -o model_card.md
+
+  # Generate model cards for all models (JSON format)
+  aiact-toolkit generate-model-card metadata.json --all --format json -o model_cards/
         """
     )
 
@@ -279,6 +287,35 @@ Examples:
     article10_parser.add_argument(
         "-o", "--output",
         help="Save Article 10 report to file"
+    )
+
+    # Generate model card command
+    model_card_parser = subparsers.add_parser(
+        "generate-model-card",
+        help="Generate model card for transparency and documentation (EU AI Act Article 13)"
+    )
+    model_card_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    model_card_parser.add_argument(
+        "-o", "--output",
+        help="Output file path (default: model_card.md)"
+    )
+    model_card_parser.add_argument(
+        "-m", "--model-name",
+        help="Specific model name (if multiple models in metadata)"
+    )
+    model_card_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Generate model cards for all models in metadata"
+    )
+    model_card_parser.add_argument(
+        "--format",
+        choices=["markdown", "json"],
+        default="markdown",
+        help="Output format (default: markdown)"
     )
 
     return parser
@@ -999,6 +1036,93 @@ def cmd_article10_report(args) -> int:
         return 1
 
 
+def cmd_generate_model_card(args) -> int:
+    """Handle generate-model-card command."""
+    try:
+        # Load metadata
+        generator = DocumentGenerator()
+        metadata = generator.load_metadata(args.metadata)
+
+        card_generator = ModelCardGenerator()
+
+        if args.all:
+            # Generate cards for all models
+            cards = generate_model_cards_for_all_models(metadata)
+
+            if args.format == "json":
+                # Save as JSON files
+                output_dir = args.output or "model_cards"
+                Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+                for i, card in enumerate(cards):
+                    filename = f"{card.model_details.name.replace(' ', '_').lower()}_card.json"
+                    filepath = Path(output_dir) / filename
+                    card.save_json(str(filepath))
+                    print(f"✓ Generated: {filepath}")
+
+                print(f"\n✓ Generated {len(cards)} model card(s) in JSON format")
+            else:
+                # Save as markdown files
+                output_dir = args.output or "model_cards"
+                Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+                for card in cards:
+                    filename = f"{card.model_details.name.replace(' ', '_').lower()}_card.md"
+                    filepath = Path(output_dir) / filename
+
+                    # Render markdown using template
+                    generator.generate_document(
+                        template_name="model_card.md.jinja2",
+                        metadata=card.to_dict(),
+                        output_path=str(filepath)
+                    )
+                    print(f"✓ Generated: {filepath}")
+
+                print(f"\n✓ Generated {len(cards)} model card(s) in Markdown format")
+
+        else:
+            # Generate single model card
+            card = card_generator.generate_from_metadata(
+                metadata,
+                model_name=args.model_name
+            )
+
+            if args.format == "json":
+                # Save as JSON
+                output_path = args.output or "model_card.json"
+                card.save_json(output_path)
+                print(f"✓ Model card generated: {output_path}")
+            else:
+                # Save as markdown
+                output_path = args.output or "model_card.md"
+                generator.generate_document(
+                    template_name="model_card.md.jinja2",
+                    metadata=card.to_dict(),
+                    output_path=output_path
+                )
+                print(f"✓ Model card generated: {output_path}")
+
+            print(f"\nModel: {card.model_details.name}")
+            print(f"Type: {card.model_details.model_type}")
+            if card.regulatory_compliance:
+                if card.regulatory_compliance.risk_level:
+                    print(f"Risk Level: {card.regulatory_compliance.risk_level.upper()}")
+                if card.regulatory_compliance.eu_ai_act_category:
+                    print(f"EU AI Act Category: {card.regulatory_compliance.eu_ai_act_category}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -1031,6 +1155,8 @@ def main():
         return cmd_data_quality(args)
     elif args.command == "article10-report":
         return cmd_article10_report(args)
+    elif args.command == "generate-model-card":
+        return cmd_generate_model_card(args)
     else:
         parser.print_help()
         return 1
