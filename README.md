@@ -200,7 +200,38 @@ aiact-toolkit generate-model-card metadata.json --all -o model_cards/
 aiact-toolkit generate-model-card metadata.json --format json -o model_card.json
 ```
 
-### 2. DSGVO-DSFA (Datenschutz-Folgenabschätzung)
+### 2. Technische Dokumentation (EU AI Act Artikel 11)
+
+Erforderlich für Hochrisiko-KI-Systeme gemäß EU AI Act Artikel 11. Umfassende technische Dokumentation zur Konformitätsbewertung.
+
+**CLI-Verwendung:**
+```bash
+# Markdown-Dokumentation generieren
+aiact-toolkit generate-technical-doc metadata.json -o technical_documentation.md
+
+# JSON-Format generieren
+aiact-toolkit generate-technical-doc metadata.json --format json -o tech_doc.json
+```
+
+**Automatisch befüllte Abschnitte:**
+- Systemidentifikation und Risikoeinstufung
+- Allgemeine Systembeschreibung mit Fähigkeiten und Einschränkungen
+- Entwicklungsprozess mit Versionskontrolle und Änderungshistorie
+- Architektur und Design (Modelle, Komponenten, Algorithmen)
+- Datenanforderungen und Data Governance (Artikel 10)
+- Menschliche Aufsichtsmaßnahmen (Artikel 14)
+- Leistungsmetriken und Monitoring
+- Risikomanagementsystem
+- Lifecycle-Management und Post-Market Monitoring
+- Konformitätsbewertungsverfahren
+
+**Manuelle Eingabe erforderlich:**
+- Deployment-Kontext und Zielgruppe
+- Detaillierte Testverfahren
+- Bias-Mitigation-Strategien
+- Harmonisierte Normen
+
+### 3. DSGVO-DSFA (Datenschutz-Folgenabschätzung)
 
 Erforderlich für Hochrisiko-KI-Systeme, die personenbezogene Daten verarbeiten (DSGVO Artikel 35).
 
@@ -214,7 +245,7 @@ Erforderlich für Hochrisiko-KI-Systeme, die personenbezogene Daten verarbeiten 
 - Risikobewertung
 - Abhilfemaßnahmen
 
-### 3. Artikel 53 Zusammenfassung (AI Act GPAI-Transparenz)
+### 4. Artikel 53 Zusammenfassung (AI Act GPAI-Transparenz)
 
 Erforderlich für General Purpose AI-Systeme (AI Act Artikel 53).
 
@@ -240,28 +271,30 @@ ai-act-compliance-toolkit/
 │
 ├── src/aiact_toolkit/
 │   ├── __init__.py
-│   ├── langchain_monitor.py    # LangChain Integration
-│   ├── pytorch_monitor.py      # PyTorch Integration
-│   ├── tensorflow_monitor.py   # TensorFlow Integration
-│   ├── metadata_storage.py     # Speichermechanismus
-│   ├── model_card.py           # Model Card Generator
-│   ├── risk_assessment.py      # Risikobewertung
-│   ├── audit_trail.py          # Audit Trail (Artikel 12)
-│   ├── version_control.py      # Versionskontrolle
-│   ├── data_governance.py      # Data Governance (Artikel 10)
-│   ├── operational_metrics.py  # Metriken-Tracking
-│   ├── document_generator.py   # Dokumentengenerierung
-│   └── cli.py                  # CLI-Tool
+│   ├── langchain_monitor.py         # LangChain Integration
+│   ├── pytorch_monitor.py           # PyTorch Integration
+│   ├── tensorflow_monitor.py        # TensorFlow Integration
+│   ├── metadata_storage.py          # Speichermechanismus
+│   ├── model_card.py                # Model Card Generator
+│   ├── technical_documentation.py   # Technische Dokumentation (Artikel 11)
+│   ├── risk_assessment.py           # Risikobewertung
+│   ├── audit_trail.py               # Audit Trail (Artikel 12)
+│   ├── version_control.py           # Versionskontrolle
+│   ├── data_governance.py           # Data Governance (Artikel 10)
+│   ├── operational_metrics.py       # Metriken-Tracking
+│   ├── document_generator.py        # Dokumentengenerierung
+│   └── cli.py                       # CLI-Tool
 │
 ├── templates/
-│   ├── model_card.md.jinja2            # Model Card-Vorlage (Artikel 13)
-│   ├── dsgvo_dsfa.md.jinja2            # DSGVO-DSFA-Vorlage
-│   ├── article_53_summary.md.jinja2    # Artikel 53-Vorlage
-│   ├── risk_assessment_report.md.jinja2 # Risikobewertungs-Bericht
-│   ├── audit_report.md.jinja2          # Audit-Bericht
-│   ├── operational_report.md.jinja2    # Operational-Bericht
-│   ├── article10_data_governance.md.jinja2  # Artikel 10-Bericht
-│   └── README.md                       # Vorlagen-Dokumentation
+│   ├── model_card.md.jinja2                        # Model Card-Vorlage (Artikel 13)
+│   ├── article11_technical_documentation.md.jinja2 # Technische Dokumentation (Artikel 11)
+│   ├── dsgvo_dsfa.md.jinja2                        # DSGVO-DSFA-Vorlage
+│   ├── article_53_summary.md.jinja2                # Artikel 53-Vorlage
+│   ├── risk_assessment_report.md.jinja2            # Risikobewertungs-Bericht
+│   ├── audit_report.md.jinja2                      # Audit-Bericht
+│   ├── operational_report.md.jinja2                # Operational-Bericht
+│   ├── article10_data_governance.md.jinja2         # Artikel 10-Bericht
+│   └── README.md                                   # Vorlagen-Dokumentation
 │
 ├── examples/
 │   ├── basic_usage.py                           # LangChain Beispiel
@@ -273,6 +306,7 @@ ai-act-compliance-toolkit/
 │
 ├── tests/
 │   ├── test_langchain_monitor.py           # Unit-Tests
+│   ├── test_technical_documentation.py     # Artikel 11 Tests
 │   └── test_llama2_medical_chatbot.py      # Integrationstests
 │
 └── docs/

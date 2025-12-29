@@ -1,0 +1,397 @@
+# Technische Dokumentation nach Artikel 11 EU AI Act
+
+**System:** {{ system_identification.system_name }}
+**Version:** {{ system_identification.system_version }}
+**Risikoklassifizierung:** {{ system_identification.risk_classification }}
+**Erstellt am:** {{ generated_at }}
+
+---
+
+## 1. Systemidentifikation
+
+- **Systemname:** {{ system_identification.system_name }}
+- **Framework:** {{ system_identification.framework }}
+- **Risikoklassifizierung:** {{ system_identification.risk_classification }}
+- **Inbetriebnahme:** {{ system_identification.deployment_date }}
+- **Beabsichtigter Verwendungszweck:** {{ system_identification.intended_purpose }}
+
+---
+
+## 2. Allgemeine Beschreibung des KI-Systems
+
+### 2.1 Zweck und Anwendungsbereich
+
+{{ general_description.purpose_and_scope }}
+
+### 2.2 Fähigkeiten des Systems
+
+{% if general_description.capabilities %}
+{% for capability in general_description.capabilities %}
+- {{ capability }}
+{% endfor %}
+{% else %}
+- Systemfähigkeiten sind zu dokumentieren
+{% endif %}
+
+### 2.3 Bekannte Einschränkungen
+
+{% if general_description.known_limitations %}
+{% for limitation in general_description.known_limitations %}
+- {{ limitation }}
+{% endfor %}
+{% else %}
+- Systemeinschränkungen sind zu dokumentieren
+{% endif %}
+
+### 2.4 Zielgruppe und Einsatzkontext
+
+- **Zielnutzer:** {{ general_description.target_users }}
+- **Einsatzkontext:** {{ general_description.deployment_context }}
+
+---
+
+## 3. Entwicklungsprozess
+
+### 3.1 Entwicklungsmethodik
+
+{{ development_process.development_methodology }}
+
+### 3.2 Versionskontrolle
+
+- **Aktuelle Version:** {{ development_process.version_control.current_version }}
+- **Gesamtanzahl Versionen:** {{ development_process.version_control.total_versions }}
+
+### 3.3 Entwicklungschronologie
+
+{% if development_process.development_timeline %}
+| Version | Datum | Änderungen | Autor |
+|---------|-------|------------|-------|
+{% for entry in development_process.development_timeline %}
+| {{ entry.version }} | {{ entry.date }} | {{ entry.changes }} | {{ entry.author }} |
+{% endfor %}
+{% else %}
+Keine Versionshistorie verfügbar.
+{% endif %}
+
+### 3.4 Qualitätssicherung
+
+- **Automatisierte Nachverfolgung:** {% if development_process.quality_assurance.automated_tracking %}Aktiviert{% else %}Nicht aktiviert{% endif %}
+- **Anzahl Audit-Ereignisse:** {{ development_process.quality_assurance.audit_events_count }}
+- **Testverfahren:** {{ development_process.testing_procedures }}
+
+---
+
+## 4. Architektur und Design
+
+### 4.1 Systemarchitektur
+
+- **Typ:** {{ architecture_and_design.system_architecture.type }}
+- **Framework:** {{ architecture_and_design.system_architecture.framework }}
+
+### 4.2 Modellkomponenten
+
+{% if architecture_and_design.system_architecture.models %}
+{% for model in architecture_and_design.system_architecture.models %}
+#### {{ model.name }}
+
+- **Anbieter:** {{ model.provider }}
+- **Typ:** {{ model.type }}
+- **Hinzugefügt am:** {{ model.timestamp_added }}
+{%- if model.total_parameters %}
+- **Parameter:** {{ model.total_parameters }}
+{%- endif %}
+{%- if model.layers %}
+- **Schichten:** {{ model.layers }}
+{%- endif %}
+
+**Parameter-Konfiguration:**
+```json
+{{ model.parameters | tojson(indent=2) }}
+```
+
+{% endfor %}
+{% else %}
+Keine Modellkomponenten dokumentiert.
+{% endif %}
+
+### 4.3 Systemkomponenten
+
+{% if architecture_and_design.system_architecture.components %}
+{% for component in architecture_and_design.system_architecture.components %}
+- **{{ component.type }}:** {{ component.name }} - {{ component.description }}
+{% endfor %}
+{% else %}
+Keine zusätzlichen Komponenten dokumentiert.
+{% endif %}
+
+### 4.4 Algorithmen und Logik
+
+{{ architecture_and_design.algorithms_and_logic }}
+
+### 4.5 Rechenanforderungen
+
+{% if architecture_and_design.computational_requirements.model_size %}
+- **Modellgröße:** {{ architecture_and_design.computational_requirements.model_size }}
+{% endif %}
+- **Trainingsressourcen:** {{ architecture_and_design.computational_requirements.training_resources }}
+- **Inferenzressourcen:** {{ architecture_and_design.computational_requirements.inference_resources }}
+
+{% if architecture_and_design.computational_requirements.estimated_costs %}
+**Geschätzte Kosten:**
+- **Gesamtkosten:** {{ architecture_and_design.computational_requirements.estimated_costs.total_cost }}
+- **Kosten pro Operation:** {{ architecture_and_design.computational_requirements.estimated_costs.cost_per_operation }}
+{% endif %}
+
+### 4.6 Integrationspunkte
+
+{{ architecture_and_design.integration_points }}
+
+---
+
+## 5. Datenanforderungen und Data Governance (Artikel 10)
+
+### 5.1 Datenquellen
+
+{% if data_requirements.data_sources %}
+| Quelle | Datentyp | Loader | Hinzugefügt am |
+|--------|----------|--------|----------------|
+{% for source in data_requirements.data_sources %}
+| {{ source.source_name }} | {{ source.data_type }} | {{ source.loader_type }} | {{ source.timestamp_added }} |
+{% endfor %}
+{% else %}
+Keine Datenquellen dokumentiert.
+{% endif %}
+
+### 5.2 Data Governance
+
+- **Lineage-Tracking:** {% if data_requirements.data_governance.lineage_tracking %}Aktiviert{% else %}Nicht aktiviert{% endif %}
+
+{% if data_requirements.data_governance.quality_metrics %}
+**Qualitätsmetriken:**
+- **Durchschnittliche Vollständigkeit:** {{ data_requirements.data_governance.quality_metrics.average_completeness | default('Nicht bewertet') }}
+- **Durchschnittliche Genauigkeit:** {{ data_requirements.data_governance.quality_metrics.average_accuracy | default('Nicht bewertet') }}
+{% endif %}
+
+{% if data_requirements.data_governance.privacy_compliance %}
+**Datenschutz-Compliance:**
+- **Personenbezogene Daten:** {{ data_requirements.data_governance.privacy_compliance.personal_data_sources | default(0) }} Quellen
+- **Sensible Daten:** {{ data_requirements.data_governance.privacy_compliance.sensitive_data_sources | default(0) }} Quellen
+{% endif %}
+
+### 5.3 Datenqualitätskriterien
+
+- **Relevanz:** {{ data_requirements.data_quality_criteria.relevance }}
+- **Repräsentativität:** {{ data_requirements.data_quality_criteria.representativeness }}
+- **Vollständigkeit:** {{ data_requirements.data_quality_criteria.completeness }}
+- **Genauigkeit:** {{ data_requirements.data_quality_criteria.accuracy }}
+
+### 5.4 Datenvorverarbeitung
+
+{{ data_requirements.data_preprocessing }}
+
+### 5.5 Bias-Mitigation
+
+{{ data_requirements.bias_mitigation }}
+
+---
+
+## 6. Menschliche Aufsicht (Artikel 14)
+
+### 6.1 Anforderungsebene
+
+**Erforderliches Aufsichtsniveau:** {{ human_oversight.oversight_requirement_level }}
+
+### 6.2 Empfohlene Maßnahmen
+
+{% for measure in human_oversight.recommended_measures %}
+- {{ measure }}
+{% endfor %}
+
+### 6.3 Technische Maßnahmen
+
+- **Konfidenzgrenzwerte:** {{ human_oversight.technical_measures.confidence_thresholds }}
+- **Unsicherheitserkennung:** {{ human_oversight.technical_measures.uncertainty_detection }}
+- **Erklärungsgenerierung:** {{ human_oversight.technical_measures.explanation_generation }}
+
+### 6.4 Organisatorische Maßnahmen
+
+- **Schulungsanforderungen:** {{ human_oversight.organizational_measures.training_requirements }}
+- **Kompetenzanforderungen:** {{ human_oversight.organizational_measures.competence_requirements }}
+- **Eingriffsverfahren:** {{ human_oversight.organizational_measures.intervention_procedures }}
+
+### 6.5 Implementierungsstatus
+
+{{ human_oversight.implementation_status }}
+
+---
+
+## 7. Leistungsmetriken und Monitoring
+
+### 7.1 Betriebsstatistiken
+
+{% if performance_metrics.operational_statistics %}
+- **Gesamtoperationen:** {{ performance_metrics.operational_statistics.total_operations }}
+- **Erfolgreiche Operationen:** {{ performance_metrics.operational_statistics.successful_operations }}
+- **Fehlgeschlagene Operationen:** {{ performance_metrics.operational_statistics.failed_operations }}
+- **Erfolgsrate:** {{ performance_metrics.operational_statistics.success_rate }}
+{% else %}
+Keine Betriebsstatistiken verfügbar.
+{% endif %}
+
+### 7.2 Leistungsindikatoren
+
+{% if performance_metrics.performance_indicators %}
+- **Durchschnittliche Latenz:** {{ performance_metrics.performance_indicators.average_latency }} ms
+- **Minimale Latenz:** {{ performance_metrics.performance_indicators.min_latency }} ms
+- **Maximale Latenz:** {{ performance_metrics.performance_indicators.max_latency }} ms
+- **Gesamtkosten:** {{ performance_metrics.performance_indicators.total_cost }}
+{% else %}
+Keine Leistungsindikatoren verfügbar.
+{% endif %}
+
+### 7.3 Monitoring-Mechanismen
+
+- **Automatisierte Protokollierung:** {% if performance_metrics.monitoring_mechanisms.automated_logging %}Aktiviert{% else %}Nicht aktiviert{% endif %}
+- **Leistungsverfolgung:** {% if performance_metrics.monitoring_mechanisms.performance_tracking %}Aktiviert{% else %}Nicht aktiviert{% endif %}
+- **Fehlerverfolgung:** {{ performance_metrics.monitoring_mechanisms.error_tracking }} Fehler erfasst
+
+### 7.4 Genauigkeitsmetriken
+
+{{ performance_metrics.accuracy_metrics }}
+
+### 7.5 Robustheitstests
+
+{{ performance_metrics.robustness_testing }}
+
+---
+
+## 8. Risikomanagementsystem
+
+### 8.1 Status der Risikobewertung
+
+**Status:** {{ risk_management.risk_assessment_status }}
+
+{% if risk_management.risk_assessment_status == "completed" %}
+
+### 8.2 Risikoklassifizierung
+
+- **Risikostufe:** {{ risk_management.risk_classification.risk_level }}
+- **Konfidenz:** {{ risk_management.risk_classification.confidence }}
+- **Bewertungsdatum:** {{ risk_management.risk_classification.assessment_date }}
+
+### 8.3 Identifizierte Risiken
+
+{% for risk in risk_management.identified_risks %}
+- {{ risk }}
+{% endfor %}
+
+### 8.4 Risikominderungsmaßnahmen
+
+{% for measure in risk_management.mitigation_measures %}
+- {{ measure }}
+{% endfor %}
+
+### 8.5 Compliance-Anforderungen
+
+{% for requirement in risk_management.compliance_requirements %}
+- {{ requirement }}
+{% endfor %}
+
+### 8.6 Restrisiken
+
+{{ risk_management.residual_risks }}
+
+### 8.7 Risikoüberwachung
+
+- **Kontinuierliche Überwachung:** {{ risk_management.risk_monitoring.continuous_monitoring }}
+- **Überprüfungsfrequenz:** {{ risk_management.risk_monitoring.review_frequency }}
+
+{% else %}
+
+**Empfehlung:** {{ risk_management.recommendation }}
+
+{% endif %}
+
+---
+
+## 9. Lifecycle-Management
+
+### 9.1 Versionskontrolle
+
+- **Aktuelle Version:** {{ lifecycle_management.version_control.current_version }}
+- **Gesamtanzahl Versionen:** {{ lifecycle_management.version_control.total_versions }}
+- **Versionshistorie verfügbar:** {% if lifecycle_management.version_control.version_history_available %}Ja{% else %}Nein{% endif %}
+
+### 9.2 Änderungsmanagement
+
+- **Dokumentierte Änderungen:** {{ lifecycle_management.change_management.documented_changes }}
+- **Änderungsverfolgung aktiviert:** {% if lifecycle_management.change_management.change_tracking_enabled %}Ja{% else %}Nein{% endif %}
+- **Audit-Trail-Integrität:** {{ lifecycle_management.change_management.audit_trail_integrity }}
+
+### 9.3 Erwartete Lebensdauer
+
+{{ lifecycle_management.expected_lifetime }}
+
+### 9.4 Wartungsplan
+
+- **Update-Frequenz:** {{ lifecycle_management.maintenance_plan.update_frequency }}
+- **Überwachungsverfahren:** {{ lifecycle_management.maintenance_plan.monitoring_procedures }}
+- **Stilllegungsplan:** {{ lifecycle_management.maintenance_plan.decommissioning_plan }}
+
+### 9.5 Marktüberwachung nach Inverkehrbringen (Post-Market Monitoring)
+
+- **Überwachungsplan:** {{ lifecycle_management.post_market_monitoring.monitoring_plan }}
+- **Vorfallmeldung:** {{ lifecycle_management.post_market_monitoring.incident_reporting }}
+- **Korrekturmaßnahmen:** {{ lifecycle_management.post_market_monitoring.corrective_actions }}
+
+---
+
+## 10. Konformitätsbewertung
+
+### 10.1 Anwendbares Verfahren
+
+**Verfahren:** {{ conformity_assessment.applicable_procedure }}
+
+### 10.2 Bewertungsdetails
+
+{% for detail in conformity_assessment.assessment_details %}
+- {{ detail }}
+{% endfor %}
+
+### 10.3 Harmonisierte Normen
+
+{{ conformity_assessment.harmonized_standards }}
+
+### 10.4 Technische Spezifikationen
+
+{{ conformity_assessment.technical_specifications }}
+
+### 10.5 Compliance-Status
+
+| Bereich | Status |
+|---------|--------|
+| Risikobewertung | {{ conformity_assessment.compliance_status.risk_assessment }} |
+| Technische Dokumentation | {{ conformity_assessment.compliance_status.technical_documentation }} |
+| Qualitätsmanagement | {{ conformity_assessment.compliance_status.quality_management }} |
+| Marktüberwachung | {{ conformity_assessment.compliance_status.post_market_monitoring }} |
+
+---
+
+## 11. Anhänge und Referenzen
+
+### 11.1 Zugehörige Dokumente
+
+- Model Card (Artikel 13): Verfügbar über `aiact-toolkit generate-model-card`
+- DSGVO-DSFA: Verfügbar über `aiact-toolkit generate -t dsgvo_dsfa.md.jinja2`
+- Audit-Trail-Bericht: Verfügbar über `aiact-toolkit audit-trail`
+- Data Governance Bericht: Verfügbar über `aiact-toolkit article10-report`
+
+### 11.2 Kontaktinformation
+
+**Support und Compliance-Anfragen:** [Zu spezifizieren]
+
+---
+
+*Dieses Dokument wurde automatisch generiert durch das AI Act Compliance Toolkit gemäß Artikel 11 der EU-Verordnung über Künstliche Intelligenz (EU AI Act).*
+
+*Hinweis: Dies ist ein Proof-of-Concept-Dokument. Für produktive Systeme müssen alle Abschnitte mit "Zu spezifizieren" oder "Zu dokumentieren" vollständig ausgefüllt werden.*

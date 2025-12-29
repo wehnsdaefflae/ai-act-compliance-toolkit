@@ -40,6 +40,7 @@ from .model_card import (
     RegulatoryCompliance,
     generate_model_cards_for_all_models
 )
+from .technical_documentation import TechnicalDocumentationGenerator
 
 __version__ = "0.1.0"
 __all__ = [
@@ -75,5 +76,6 @@ __all__ = [
     "EthicalConsiderations",
     "Limitations",
     "RegulatoryCompliance",
-    "generate_model_cards_for_all_models"
+    "generate_model_cards_for_all_models",
+    "TechnicalDocumentationGenerator"
 ]

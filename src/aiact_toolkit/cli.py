@@ -18,6 +18,7 @@ from .operational_metrics import MetricsAnalyzer
 from .audit_trail import AuditReportGenerator
 from .data_governance import DataGovernanceTracker
 from .model_card import ModelCardGenerator, generate_model_cards_for_all_models
+from .technical_documentation import TechnicalDocumentationGenerator
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -72,6 +73,10 @@ Examples:
 
   # Generate model cards for all models (JSON format)
   aiact-toolkit generate-model-card metadata.json --all --format json -o model_cards/
+
+  # Generate EU AI Act Article 11 technical documentation
+  aiact-toolkit generate-technical-doc metadata.json -o technical_documentation.md
+  aiact-toolkit generate-technical-doc metadata.json --format json -o tech_doc.json
         """
     )
 
@@ -312,6 +317,26 @@ Examples:
         help="Generate model cards for all models in metadata"
     )
     model_card_parser.add_argument(
+        "--format",
+        choices=["markdown", "json"],
+        default="markdown",
+        help="Output format (default: markdown)"
+    )
+
+    # Generate technical documentation command (Article 11)
+    tech_doc_parser = subparsers.add_parser(
+        "generate-technical-doc",
+        help="Generate EU AI Act Article 11 technical documentation"
+    )
+    tech_doc_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    tech_doc_parser.add_argument(
+        "-o", "--output",
+        help="Output file path (default: technical_documentation.md)"
+    )
+    tech_doc_parser.add_argument(
         "--format",
         choices=["markdown", "json"],
         default="markdown",
@@ -1123,6 +1148,58 @@ def cmd_generate_model_card(args) -> int:
         return 1
 
 
+def cmd_generate_technical_doc(args) -> int:
+    """Handle generate-technical-doc command."""
+    try:
+        # Load metadata
+        generator = DocumentGenerator()
+        metadata = generator.load_metadata(args.metadata)
+
+        print(f"Generating Article 11 Technical Documentation for: {metadata.get('system_name', 'unknown')}")
+
+        # Generate technical documentation
+        tech_doc_gen = TechnicalDocumentationGenerator(metadata)
+        documentation = tech_doc_gen.generate_documentation()
+
+        if args.format == "json":
+            # Save as JSON
+            output_path = args.output or "technical_documentation.json"
+            tech_doc_gen.to_json(output_path)
+            print(f"✓ Technical documentation generated: {output_path}")
+        else:
+            # Save as markdown using template
+            output_path = args.output or "technical_documentation.md"
+            generator.generate_document(
+                template_name="article11_technical_documentation.md.jinja2",
+                metadata=documentation,
+                output_path=output_path
+            )
+            print(f"✓ Technical documentation generated: {output_path}")
+
+        # Show summary
+        print(f"\nSystem: {documentation['system_identification']['system_name']}")
+        print(f"Risk Classification: {documentation['system_identification']['risk_classification']}")
+        print(f"Framework: {documentation['system_identification']['framework']}")
+
+        risk_status = documentation['risk_management']['risk_assessment_status']
+        if risk_status == "completed":
+            print(f"Risk Assessment: ✓ Completed")
+        else:
+            print(f"Risk Assessment: ⚠ Not performed (run 'aiact-toolkit assess-risk' first)")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -1157,6 +1234,8 @@ def main():
         return cmd_article10_report(args)
     elif args.command == "generate-model-card":
         return cmd_generate_model_card(args)
+    elif args.command == "generate-technical-doc":
+        return cmd_generate_technical_doc(args)
     else:
         parser.print_help()
         return 1
