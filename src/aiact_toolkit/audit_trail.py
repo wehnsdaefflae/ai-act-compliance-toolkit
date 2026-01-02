@@ -29,6 +29,7 @@ class AuditEventType(Enum):
     COMPLIANCE_DOCUMENT_GENERATED = "compliance_document_generated"
     CONFIGURATION_CHANGED = "configuration_changed"
     METRICS_RECORDED = "metrics_recorded"
+    BIAS_ANALYSIS_PERFORMED = "bias_analysis_performed"
 
 
 class AuditEvent:

@@ -1,0 +1,176 @@
+# Bias und Fairness Analyse Bericht
+
+**System:** {{ system_name }}
+**Datum:** {{ timestamp }}
+
+{% if bias_summary %}
+## Zusammenfassung
+
+- **Anzahl Analysen:** {{ bias_summary.total_analyses }}
+- **Gesamtrisikostufe:** {{ bias_summary.overall_risk_level|upper }}
+- **Durchschnittlicher Fairness-Score:** {{ "%.1f%%"|format(bias_summary.average_fairness_score * 100) }}
+
+{% if bias_summary.overall_risk_level == 'critical' %}
+⚠️ **KRITISCH:** Signifikante Fairness-Probleme erkannt. Das System entspricht möglicherweise nicht den Anforderungen von Artikel 10 der EU-KI-Verordnung.
+{% elif bias_summary.overall_risk_level == 'high' %}
+⚠️ **HOCH:** Erhebliche Fairness-Probleme erkannt. Maßnahmen zur Bias-Minimierung erforderlich.
+{% elif bias_summary.overall_risk_level == 'medium' %}
+ℹ️ **MITTEL:** Einige Fairness-Probleme erkannt. Regelmäßige Überwachung empfohlen.
+{% elif bias_summary.overall_risk_level == 'low' %}
+✅ **NIEDRIG:** System zeigt gute Fairness-Eigenschaften.
+{% endif %}
+
+{% endif %}
+
+## EU KI-Verordnung Compliance-Hinweise
+
+**Artikel 10 - Datengovernance und Datenverwaltungspraktiken:**
+- Training, Validierung und Testdaten müssen Datengovernance-Praktiken unterliegen
+- Artikel 10(2)(f): Angemessene Maßnahmen zur Erkennung, Verhinderung und Minderung möglicher Verzerrungen (Bias)
+
+**Artikel 15 - Genauigkeit, Robustheit und Cybersicherheit:**
+- KI-Hochrisikosysteme müssen ein angemessenes Niveau an Genauigkeit, Robustheit und Cybersicherheit aufweisen
+- Fairness ist ein wichtiger Aspekt der Robustheit und Zuverlässigkeit
+
+{% if bias_summary and bias_summary.overall_risk_level in ['high', 'critical'] %}
+**Zusätzliche Anforderungen für Hochrisikosysteme:**
+- Kontinuierliche Bias-Überwachung während des Produktivbetriebs
+- Dokumentation aller Maßnahmen zur Bias-Minimierung
+- Konsultation mit Bias/Fairness-Experten und betroffenen Gemeinschaften
+{% endif %}
+
+---
+
+{% if bias_analyses %}
+## Detaillierte Analyse-Ergebnisse
+
+{% for analysis in bias_analyses %}
+### Analyse {{ loop.index }}: {{ analysis.dataset_name }}
+
+**Analyse-ID:** `{{ analysis.analysis_id }}`
+**Typ:** {{ analysis.analysis_type }}
+**Zeitstempel:** {{ analysis.timestamp }}
+**Risikostufe:** {{ analysis.risk_level|upper }}
+**Fairness-Score:** {{ "%.1f%%"|format(analysis.overall_fairness_score * 100) }}
+
+#### Gemessene Metriken
+
+{% if analysis.metrics %}
+| Metrik | Geschütztes Attribut | Wert | Schwellenwert | Status |
+|--------|---------------------|------|---------------|--------|
+{% for metric in analysis.metrics %}
+| {{ metric.metric_name }} | {{ metric.protected_attribute }} | {{ "%.4f"|format(metric.value) }} | {{ "%.4f"|format(metric.threshold) }} | {% if metric.passed %}✅ Bestanden{% else %}❌ Nicht bestanden{% endif %} |
+{% endfor %}
+
+{% for metric in analysis.metrics %}
+{% if not metric.passed %}
+##### {{ metric.metric_name }} - Details
+
+**Geschütztes Attribut:** {{ metric.protected_attribute }}
+**Metrik-Typ:** {{ metric.metric_type }}
+**Analysierte Gruppen:** {{ metric.groups_analyzed|join(', ') }}
+
+{% if metric.details %}
+{% if metric.details.proportions %}
+**Verteilung nach Gruppen:**
+{% for group, proportion in metric.details.proportions.items() %}
+- {{ group }}: {{ "%.1f%%"|format(proportion * 100) }}{% if metric.details.counts %} ({{ metric.details.counts[group] }} Samples){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if metric.details.positive_rates %}
+**Positive Outcome-Raten nach Gruppen:**
+{% for group, rate in metric.details.positive_rates.items() %}
+- {{ group }}: {{ "%.1f%%"|format(rate * 100) }}
+{% endfor %}
+{% endif %}
+
+{% if metric.details.tpr_by_group %}
+**True Positive Rate (TPR) nach Gruppen:**
+{% for group, tpr in metric.details.tpr_by_group.items() %}
+- {{ group }}: {{ "%.1f%%"|format(tpr * 100) }}
+{% endfor %}
+{% endif %}
+
+{% if metric.details.ppv_by_group %}
+**Positive Predictive Value (PPV) nach Gruppen:**
+{% for group, ppv in metric.details.ppv_by_group.items() %}
+- {{ group }}: {{ "%.1f%%"|format(ppv * 100) }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% endif %}
+{% endfor %}
+
+{% else %}
+*Keine Metriken verfügbar*
+{% endif %}
+
+#### Empfehlungen
+
+{% if analysis.recommendations %}
+{% for recommendation in analysis.recommendations %}
+{{ loop.index }}. {{ recommendation }}
+{% endfor %}
+{% else %}
+*Keine spezifischen Empfehlungen*
+{% endif %}
+
+{% if analysis.metadata %}
+#### Zusätzliche Metadaten
+
+```json
+{{ analysis.metadata|tojson(indent=2) }}
+```
+{% endif %}
+
+---
+
+{% endfor %}
+{% else %}
+*Keine Bias-Analysen verfügbar*
+{% endif %}
+
+## Glossar der Fairness-Metriken
+
+### Demographic Parity (Statistische Parität)
+Fordert, dass die Wahrscheinlichkeit einer positiven Vorhersage für alle geschützten Gruppen gleich sein sollte. Verletzungen dieser Metrik weisen darauf hin, dass das Modell verschiedene Gruppen mit unterschiedlichen Raten positiv klassifiziert.
+
+### Equal Opportunity (Chancengleichheit)
+Fordert, dass die True Positive Rate (Sensitivität) für alle geschützten Gruppen gleich sein sollte. Dies bedeutet, dass das Modell qualifizierte Kandidaten aus allen Gruppen mit gleicher Wahrscheinlichkeit erkennen sollte.
+
+### Predictive Parity (Vorhersageparität)
+Fordert, dass die Precision (Positive Predictive Value) für alle geschützten Gruppen gleich sein sollte. Dies bedeutet, dass positive Vorhersagen für alle Gruppen gleich zuverlässig sein sollten.
+
+### Representation Balance (Repräsentationsgleichgewicht)
+Misst, ob alle Gruppen im Datensatz angemessen vertreten sind. Große Abweichungen von einer Gleichverteilung können auf systematische Unterrepräsentation hinweisen.
+
+### Outcome Balance (Ergebnisgleichgewicht)
+Misst, ob die Verteilung der Zielvariable (z.B. positive vs. negative Outcomes) über alle geschützten Gruppen hinweg ausgewogen ist.
+
+---
+
+## Maßnahmen zur Bias-Minimierung
+
+Abhängig von der Art des erkannten Bias können folgende Maßnahmen ergriffen werden:
+
+### Datenebene (Pre-Processing)
+- **Resampling:** Über-/Unterabtastung von unterrepräsentierten/überrepräsentierten Gruppen
+- **Data Augmentation:** Synthetische Erzeugung von Daten für unterrepräsentierte Gruppen
+- **Datensammlung:** Gezielte Sammlung zusätzlicher Daten für unterrepräsentierte Gruppen
+- **Feature Engineering:** Überprüfung und Anpassung von Features, die Proxy-Variablen für geschützte Attribute sein könnten
+
+### Modellebene (In-Processing)
+- **Fairness Constraints:** Integration von Fairness-Nebenbedingungen während des Trainings
+- **Adversarial Debiasing:** Training mit adversariellem Ansatz zur Minimierung von Bias
+- **Reweighting:** Gewichtung von Trainingsbeispielen basierend auf Gruppenzugehörigkeit
+
+### Ausgabeebene (Post-Processing)
+- **Threshold Optimization:** Anpassung von Entscheidungsschwellen pro Gruppe
+- **Calibration:** Kalibrierung der Modellausgaben für verschiedene Gruppen
+- **Ensemble Methods:** Kombination mehrerer Modelle mit unterschiedlichen Fairness-Eigenschaften
+
+---
+
+*Dieser Bericht wurde automatisch generiert durch das AI Act Compliance Toolkit*

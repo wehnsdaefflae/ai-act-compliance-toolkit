@@ -41,6 +41,12 @@ from .model_card import (
     generate_model_cards_for_all_models
 )
 from .technical_documentation import TechnicalDocumentationGenerator
+from .bias_detection import (
+    BiasDetector,
+    BiasMetric,
+    BiasAnalysisResult,
+    BiasReportGenerator
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -77,5 +83,9 @@ __all__ = [
     "Limitations",
     "RegulatoryCompliance",
     "generate_model_cards_for_all_models",
-    "TechnicalDocumentationGenerator"
+    "TechnicalDocumentationGenerator",
+    "BiasDetector",
+    "BiasMetric",
+    "BiasAnalysisResult",
+    "BiasReportGenerator"
 ]

@@ -19,6 +19,7 @@ from .audit_trail import AuditReportGenerator
 from .data_governance import DataGovernanceTracker
 from .model_card import ModelCardGenerator, generate_model_cards_for_all_models
 from .technical_documentation import TechnicalDocumentationGenerator
+from .bias_detection import BiasDetector, BiasReportGenerator
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -77,6 +78,9 @@ Examples:
   # Generate EU AI Act Article 11 technical documentation
   aiact-toolkit generate-technical-doc metadata.json -o technical_documentation.md
   aiact-toolkit generate-technical-doc metadata.json --format json -o tech_doc.json
+
+  # Generate bias and fairness analysis report
+  aiact-toolkit bias-report metadata.json -o bias_report.md
         """
     )
 
@@ -341,6 +345,20 @@ Examples:
         choices=["markdown", "json"],
         default="markdown",
         help="Output format (default: markdown)"
+    )
+
+    # Bias and fairness report command
+    bias_parser = subparsers.add_parser(
+        "bias-report",
+        help="Generate bias and fairness analysis report (EU AI Act Article 10/15)"
+    )
+    bias_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    bias_parser.add_argument(
+        "-o", "--output",
+        help="Output file path (default: bias_fairness_report.md)"
     )
 
     return parser
@@ -1200,6 +1218,62 @@ def cmd_generate_technical_doc(args) -> int:
         return 1
 
 
+def cmd_bias_report(args) -> int:
+    """Handle bias-report command."""
+    try:
+        # Load metadata
+        generator = DocumentGenerator()
+        metadata = generator.load_metadata(args.metadata)
+
+        print(f"Generating Bias and Fairness Report for: {metadata.get('system_name', 'unknown')}")
+
+        # Check if bias analyses exist in metadata
+        bias_analyses = metadata.get('bias_analyses', [])
+        if not bias_analyses:
+            print("\nWarning: No bias analyses found in metadata.", file=sys.stderr)
+            print("The system has not yet performed any bias analysis.", file=sys.stderr)
+            print("To perform bias analysis, use the BiasDetector class in your code.", file=sys.stderr)
+            print("\nGenerating template report with placeholder information...\n")
+
+        # Generate bias report
+        output_path = args.output or "bias_fairness_report.md"
+        generator.generate_document(
+            template_name="bias_fairness_report.md.jinja2",
+            metadata=metadata,
+            output_path=output_path
+        )
+        print(f"✓ Bias and fairness report generated: {output_path}")
+
+        # Show summary if analyses exist
+        if bias_analyses:
+            bias_summary = metadata.get('bias_summary', {})
+            print(f"\nSummary:")
+            print(f"Total Analyses: {bias_summary.get('total_analyses', 0)}")
+            print(f"Overall Risk Level: {bias_summary.get('overall_risk_level', 'unknown').upper()}")
+            print(f"Average Fairness Score: {bias_summary.get('average_fairness_score', 0):.1%}")
+
+            risk_level = bias_summary.get('overall_risk_level', 'unknown')
+            if risk_level in ['high', 'critical']:
+                print("\n⚠ WARNING: Significant fairness issues detected!")
+                print("Review the detailed report for recommendations.")
+            elif risk_level == 'medium':
+                print("\nℹ Some fairness issues detected. Regular monitoring recommended.")
+            elif risk_level == 'low':
+                print("\n✓ System shows good fairness characteristics.")
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -1236,6 +1310,8 @@ def main():
         return cmd_generate_model_card(args)
     elif args.command == "generate-technical-doc":
         return cmd_generate_technical_doc(args)
+    elif args.command == "bias-report":
+        return cmd_bias_report(args)
     else:
         parser.print_help()
         return 1

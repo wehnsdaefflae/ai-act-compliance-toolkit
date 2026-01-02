@@ -36,6 +36,7 @@ class MetadataStorage:
         self.data_sources: List[Dict[str, Any]] = []
         self.risk_assessment: Dict[str, Any] = {}
         self.operational_metrics: Dict[str, Any] = {}
+        self.bias_analyses: List[Dict[str, Any]] = []
         self.created_at = datetime.now().isoformat()
 
         # Audit trail and version control
@@ -188,6 +189,38 @@ class MetadataStorage:
                 metadata={"total_operations": metrics.get("operations", {}).get("total", 0)}
             )
 
+    def add_bias_analysis(self, bias_analysis: Dict[str, Any]):
+        """
+        Add bias analysis results to metadata storage.
+
+        Args:
+            bias_analysis: Bias analysis results from BiasDetector
+        """
+        self.bias_analyses.append(bias_analysis)
+
+        # Record audit event
+        if self.audit_trail:
+            risk_level = bias_analysis.get("risk_level", "unknown")
+            dataset_name = bias_analysis.get("dataset_name", "unknown")
+            self.audit_trail.record_event(
+                event_type=AuditEventType.BIAS_ANALYSIS_PERFORMED,
+                description=f"Bias analysis performed on {dataset_name}: {risk_level} risk",
+                actor="system",
+                metadata={
+                    "analysis_id": bias_analysis.get("analysis_id"),
+                    "risk_level": risk_level,
+                    "fairness_score": bias_analysis.get("overall_fairness_score")
+                }
+            )
+
+        # Create new version
+        if self.version_control:
+            self.version_control.commit(
+                metadata=self.get_all_metadata(),
+                description=f"Bias analysis: {dataset_name} - {risk_level} risk",
+                author="system"
+            )
+
     def get_all_metadata(self) -> Dict[str, Any]:
         """
         Get all captured metadata in a structured format.
@@ -230,6 +263,21 @@ class MetadataStorage:
             metadata["data_governance"] = self.data_governance_tracker.to_dict()
             metadata["data_quality_summary"] = self.data_governance_tracker.get_data_quality_summary()
             metadata["privacy_summary"] = self.data_governance_tracker.get_privacy_summary()
+
+        # Include bias analyses if available
+        if self.bias_analyses:
+            metadata["bias_analyses"] = self.bias_analyses
+            # Calculate overall bias summary
+            if self.bias_analyses:
+                risk_levels = {'low': 0, 'medium': 1, 'high': 2, 'critical': 3, 'unknown': -1}
+                max_risk = max(risk_levels.get(b.get("risk_level", "unknown"), -1) for b in self.bias_analyses)
+                overall_risk = next((k for k, v in risk_levels.items() if v == max_risk), 'unknown')
+                avg_fairness = sum(b.get("overall_fairness_score", 0) for b in self.bias_analyses) / len(self.bias_analyses)
+                metadata["bias_summary"] = {
+                    "total_analyses": len(self.bias_analyses),
+                    "overall_risk_level": overall_risk,
+                    "average_fairness_score": round(avg_fairness, 3)
+                }
 
         return metadata
 
@@ -327,6 +375,7 @@ class MetadataStorage:
             self.data_sources = data.get("data_sources", [])
             self.risk_assessment = data.get("risk_assessment", {})
             self.operational_metrics = data.get("operational_metrics", {})
+            self.bias_analyses = data.get("bias_analyses", [])
             self.created_at = data.get("created_at", datetime.now().isoformat())
 
         # Load audit trail from separate file if it exists
@@ -357,3 +406,4 @@ class MetadataStorage:
         self.data_sources.clear()
         self.risk_assessment = {}
         self.operational_metrics = {}
+        self.bias_analyses.clear()
