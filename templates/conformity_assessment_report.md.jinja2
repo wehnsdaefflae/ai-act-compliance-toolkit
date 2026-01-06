@@ -1,0 +1,145 @@
+# Konformitätsbewertung nach EU AI Act
+
+## Systemidentifikation
+
+- **System:** {{ system_name }}
+- **Bewertungsdatum:** {{ assessment_date }}
+- **Risikolevel:** {{ risk_level|upper }}
+- **Gesamtstatus:** {{ overall_status|upper }}
+
+---
+
+## Zusammenfassung
+
+| Metrik | Wert |
+|--------|------|
+| Geprüfte Anforderungen | {{ requirements_checked }} |
+| ✓ Erfüllt | {{ requirements_passed }} |
+| ✗ Nicht erfüllt | {{ requirements_failed }} |
+| ~ Teilweise erfüllt | {{ requirements_partial }} |
+| - Nicht anwendbar | {{ requirements_na }} |
+| **Compliance-Rate** | **{{ "%.1f"|format((requirements_passed / requirements_checked * 100) if requirements_checked > 0 else 0) }}%** |
+
+---
+
+## Compliance-Status nach Kategorie
+
+{% for category, data in category_results.items() %}
+### {{ category|replace('_', ' ')|title }}
+
+- **Erfüllt:** {{ data.passed }}/{{ data.total_requirements }} ({{ "%.0f"|format(data.compliance_percentage) }}%)
+{% if data.critical_gaps %}
+- **Kritische Lücken:** {{ data.critical_gaps|join(', ') }}
+{% endif %}
+
+{% endfor %}
+
+---
+
+## Detaillierte Anforderungsprüfung
+
+{% for req in detailed_results %}
+### {{ req.requirement_id }}: {{ req.description }}
+
+- **Artikel:** {{ req.article }}
+- **Kategorie:** {{ req.category.value|replace('_', ' ')|title }}
+- **Verpflichtend:** {{ 'Ja' if req.mandatory else 'Nein' }}
+- **Status:** {% if req.status.value == 'compliant' %}✓ ERFÜLLT{% elif req.status.value == 'non_compliant' %}✗ NICHT ERFÜLLT{% elif req.status.value == 'partial' %}~ TEILWEISE{% else %}? UNBEKANNT{% endif %}
+- **Verifizierungsmethode:** {{ req.verification_method }}
+
+{% if req.evidence %}
+**Nachweise:**
+{% for evidence in req.evidence %}
+- ✓ {{ evidence }}
+{% endfor %}
+{% endif %}
+
+{% if req.findings %}
+**Befunde:**
+{% for finding in req.findings %}
+- ⚠ {{ finding }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+
+---
+
+{% if critical_gaps %}
+## Kritische Compliance-Lücken
+
+⚠️ **Die folgenden verpflichtenden Anforderungen sind nicht oder nur teilweise erfüllt:**
+
+{% for gap in critical_gaps %}
+{{ loop.index }}. {{ gap }}
+{% endfor %}
+
+{% endif %}
+
+---
+
+## Empfehlungen
+
+{% if recommendations %}
+{% for rec in recommendations %}
+{{ loop.index }}. {{ rec }}
+{% endfor %}
+{% else %}
+✓ Keine weiteren Maßnahmen erforderlich. System erfüllt alle anwendbaren Anforderungen.
+{% endif %}
+
+---
+
+## Nächste Schritte
+
+{% if overall_status == 'compliant' %}
+### ✓ System konform
+
+Das System erfüllt alle anwendbaren EU AI Act Anforderungen für ein {{ risk_level|upper }}-Risiko-System.
+
+**Empfohlene Maßnahmen:**
+1. Regelmäßige Überprüfung der Compliance (mindestens jährlich)
+2. Dokumentation aktualisieren bei Systemänderungen
+3. Post-Market Monitoring etablieren gemäß Artikel 72
+
+{% elif overall_status == 'partial' %}
+### ~ Teilweise konform
+
+Das System erfüllt wesentliche Anforderungen, aber es bestehen Lücken in der Dokumentation oder Implementierung.
+
+**Erforderliche Maßnahmen:**
+1. Behebung der identifizierten Lücken (siehe Empfehlungen oben)
+2. Vervollständigung fehlender Dokumentation
+3. Erneute Konformitätsbewertung nach Implementierung
+
+{% else %}
+### ✗ Nicht konform
+
+Das System erfüllt kritische verpflichtende Anforderungen nicht.
+
+**DRINGEND ERFORDERLICHE MASSNAHMEN:**
+1. Sofortige Behebung kritischer Compliance-Lücken
+2. Keine Inverkehrbringung bis Konformität hergestellt
+3. Vollständige technische Dokumentation gemäß Artikel 11
+4. Implementierung fehlender Governance-Prozesse
+
+{% endif %}
+
+---
+
+## Rechtlicher Hinweis
+
+Diese Konformitätsbewertung wurde automatisiert durchgeführt auf Basis der erfassten Metadaten.
+Sie dient als Unterstützung und ersetzt keine vollständige Konformitätsbewertung durch eine
+benannte Stelle gemäß EU AI Act Artikel 43. Für Hochrisiko-Systeme ist vor dem Inverkehrbringen
+eine formale Konformitätsbewertung erforderlich.
+
+**Rechtliche Grundlagen:**
+- Verordnung (EU) 2024/1689 (EU AI Act)
+- Artikel 43-51: Konformitätsbewertung
+- Anhang III: Hochrisiko-AI-Systeme
+- Anhang IV: Technische Dokumentation
+
+---
+
+*Erstellt mit AI Act Compliance Toolkit - Compliance-as-Code für EU AI Act*

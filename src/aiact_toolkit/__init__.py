@@ -47,6 +47,14 @@ from .bias_detection import (
     BiasAnalysisResult,
     BiasReportGenerator
 )
+from .conformity_assessment import (
+    ConformityAssessor,
+    ComplianceStatus,
+    RequirementCategory,
+    ComplianceRequirement,
+    ConformityAssessmentResult,
+    generate_conformity_report
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -87,5 +95,11 @@ __all__ = [
     "BiasDetector",
     "BiasMetric",
     "BiasAnalysisResult",
-    "BiasReportGenerator"
+    "BiasReportGenerator",
+    "ConformityAssessor",
+    "ComplianceStatus",
+    "RequirementCategory",
+    "ComplianceRequirement",
+    "ConformityAssessmentResult",
+    "generate_conformity_report"
 ]

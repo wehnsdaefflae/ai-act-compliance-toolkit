@@ -231,7 +231,49 @@ aiact-toolkit generate-technical-doc metadata.json --format json -o tech_doc.jso
 - Bias-Mitigation-Strategien
 - Harmonisierte Normen
 
-### 3. DSGVO-DSFA (Datenschutz-Folgenabschätzung)
+### 3. Konformitätsbewertung (EU AI Act Artikel 43-46)
+
+Automatisierte Konformitätsbewertung für EU AI Act Compliance. Prüft systematisch alle anwendbaren Anforderungen und generiert Compliance-Berichte.
+
+**CLI-Verwendung:**
+```bash
+# Konformitätsbewertung durchführen
+aiact-toolkit conformity-assessment metadata.json
+
+# Detaillierten Bericht generieren
+aiact-toolkit conformity-assessment metadata.json -o conformity_report.md
+
+# Als JSON exportieren
+aiact-toolkit conformity-assessment metadata.json --format json -o conformity_result.json
+
+# Nur Summary anzeigen
+aiact-toolkit conformity-assessment metadata.json --summary
+```
+
+**Geprüfte Compliance-Bereiche:**
+- **Risikomanagement** (Artikel 9): Risikobewertungssystem
+- **Data Governance** (Artikel 10): Trainingsdaten-Qualität und Governance
+- **Technische Dokumentation** (Artikel 11): Vollständigkeit und Anforderungen
+- **Protokollierung** (Artikel 12): Automatische Logging-Funktionen
+- **Transparenz** (Artikel 13): Model Cards und Systemdokumentation
+- **Menschliche Aufsicht** (Artikel 14): Oversight-Mechanismen
+- **Genauigkeit & Robustheit** (Artikel 15): Performance-Metriken
+- **Cybersecurity** (Artikel 15): Sicherheitsmaßnahmen
+- **Bias-Erkennung** (Artikel 10.2f): Fairness-Monitoring
+
+**Automatische Bewertung:**
+- Identifikation kritischer Compliance-Lücken
+- Kategorisierung nach Compliance-Status (erfüllt/teilweise/nicht erfüllt)
+- Priorisierte Handlungsempfehlungen
+- Compliance-Rate pro Kategorie
+- Exit-Code basierend auf Compliance-Status (für CI/CD-Integration)
+
+**Output-Formate:**
+- Detaillierter Markdown-Bericht mit Anforderungsübersicht
+- JSON für maschinelle Verarbeitung
+- Konsolen-Summary für schnelle Checks
+
+### 4. DSGVO-DSFA (Datenschutz-Folgenabschätzung)
 
 Erforderlich für Hochrisiko-KI-Systeme, die personenbezogene Daten verarbeiten (DSGVO Artikel 35).
 
@@ -278,9 +320,11 @@ ai-act-compliance-toolkit/
 │   ├── model_card.py                # Model Card Generator
 │   ├── technical_documentation.py   # Technische Dokumentation (Artikel 11)
 │   ├── risk_assessment.py           # Risikobewertung
+│   ├── conformity_assessment.py     # Konformitätsbewertung (Artikel 43-46)
 │   ├── audit_trail.py               # Audit Trail (Artikel 12)
 │   ├── version_control.py           # Versionskontrolle
 │   ├── data_governance.py           # Data Governance (Artikel 10)
+│   ├── bias_detection.py            # Bias-Erkennung und Fairness
 │   ├── operational_metrics.py       # Metriken-Tracking
 │   ├── document_generator.py        # Dokumentengenerierung
 │   └── cli.py                       # CLI-Tool
@@ -288,12 +332,14 @@ ai-act-compliance-toolkit/
 ├── templates/
 │   ├── model_card.md.jinja2                        # Model Card-Vorlage (Artikel 13)
 │   ├── article11_technical_documentation.md.jinja2 # Technische Dokumentation (Artikel 11)
+│   ├── conformity_assessment_report.md.jinja2      # Konformitätsbewertung (Artikel 43-46)
 │   ├── dsgvo_dsfa.md.jinja2                        # DSGVO-DSFA-Vorlage
 │   ├── article_53_summary.md.jinja2                # Artikel 53-Vorlage
 │   ├── risk_assessment_report.md.jinja2            # Risikobewertungs-Bericht
 │   ├── audit_report.md.jinja2                      # Audit-Bericht
 │   ├── operational_report.md.jinja2                # Operational-Bericht
 │   ├── article10_data_governance.md.jinja2         # Artikel 10-Bericht
+│   ├── bias_fairness_report.md.jinja2              # Bias- und Fairness-Bericht
 │   └── README.md                                   # Vorlagen-Dokumentation
 │
 ├── examples/
@@ -301,12 +347,14 @@ ai-act-compliance-toolkit/
 │   ├── pytorch_example.py                       # PyTorch Beispiel
 │   ├── tensorflow_example.py                    # TensorFlow Beispiel
 │   ├── llama2_medical_chatbot_integration.py    # Praxistest
+│   ├── conformity_assessment_example.py         # Konformitätsbewertung Beispiel
 │   ├── generate_llama2_docs.py                  # Dokumentengenerierung
 │   └── generated_outputs/                       # Beispielausgaben
 │
 ├── tests/
 │   ├── test_langchain_monitor.py           # Unit-Tests
 │   ├── test_technical_documentation.py     # Artikel 11 Tests
+│   ├── test_conformity_assessment.py       # Konformitätsbewertung Tests
 │   └── test_llama2_medical_chatbot.py      # Integrationstests
 │
 └── docs/

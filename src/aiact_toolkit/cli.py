@@ -20,6 +20,7 @@ from .data_governance import DataGovernanceTracker
 from .model_card import ModelCardGenerator, generate_model_cards_for_all_models
 from .technical_documentation import TechnicalDocumentationGenerator
 from .bias_detection import BiasDetector, BiasReportGenerator
+from .conformity_assessment import ConformityAssessor, generate_conformity_report
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -81,6 +82,10 @@ Examples:
 
   # Generate bias and fairness analysis report
   aiact-toolkit bias-report metadata.json -o bias_report.md
+
+  # Perform conformity assessment for EU AI Act compliance
+  aiact-toolkit conformity-assessment metadata.json -o conformity_report.md
+  aiact-toolkit conformity-assessment metadata.json --summary
         """
     )
 
@@ -359,6 +364,31 @@ Examples:
     bias_parser.add_argument(
         "-o", "--output",
         help="Output file path (default: bias_fairness_report.md)"
+    )
+
+    # Conformity assessment command
+    conformity_parser = subparsers.add_parser(
+        "conformity-assessment",
+        help="Perform EU AI Act conformity assessment (Articles 43-46)"
+    )
+    conformity_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+    conformity_parser.add_argument(
+        "-o", "--output",
+        help="Output file path for detailed report (default: conformity_assessment.md)"
+    )
+    conformity_parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Print summary report to console only (no file output)"
+    )
+    conformity_parser.add_argument(
+        "--format",
+        choices=["markdown", "json"],
+        default="markdown",
+        help="Output format (default: markdown)"
     )
 
     return parser
@@ -1274,6 +1304,102 @@ def cmd_bias_report(args) -> int:
         return 1
 
 
+def cmd_conformity_assessment(args) -> int:
+    """Handle conformity-assessment command."""
+    try:
+        # Load metadata
+        generator = DocumentGenerator()
+        metadata = generator.load_metadata(args.metadata)
+
+        print(f"Performing Conformity Assessment for: {metadata.get('system_name', 'unknown')}")
+        print()
+
+        # Perform conformity assessment
+        assessor = ConformityAssessor()
+        result = assessor.assess_compliance(metadata)
+
+        # Print summary
+        summary_text = generate_conformity_report(result)
+        print(summary_text)
+
+        # Generate detailed report if output specified
+        if args.output and not args.summary:
+            if args.format == "json":
+                # Save as JSON
+                output_data = {
+                    "system_name": result.system_name,
+                    "assessment_date": result.assessment_date,
+                    "risk_level": result.risk_level,
+                    "overall_status": result.overall_status.value,
+                    "requirements_checked": result.requirements_checked,
+                    "requirements_passed": result.requirements_passed,
+                    "requirements_failed": result.requirements_failed,
+                    "requirements_partial": result.requirements_partial,
+                    "requirements_na": result.requirements_na,
+                    "category_results": result.category_results,
+                    "detailed_results": [
+                        {
+                            "requirement_id": req.requirement_id,
+                            "category": req.category.value,
+                            "article": req.article,
+                            "description": req.description,
+                            "mandatory": req.mandatory,
+                            "status": req.status.value,
+                            "verification_method": req.verification_method,
+                            "evidence": req.evidence,
+                            "findings": req.findings
+                        }
+                        for req in result.detailed_results
+                    ],
+                    "recommendations": result.recommendations,
+                    "critical_gaps": result.critical_gaps
+                }
+                with open(args.output, 'w', encoding='utf-8') as f:
+                    json.dump(output_data, f, indent=2, ensure_ascii=False)
+                print(f"\n✓ Conformity assessment saved (JSON): {args.output}")
+            else:
+                # Save as markdown using template
+                template_data = {
+                    "system_name": result.system_name,
+                    "assessment_date": result.assessment_date,
+                    "risk_level": result.risk_level,
+                    "overall_status": result.overall_status.value,
+                    "requirements_checked": result.requirements_checked,
+                    "requirements_passed": result.requirements_passed,
+                    "requirements_failed": result.requirements_failed,
+                    "requirements_partial": result.requirements_partial,
+                    "requirements_na": result.requirements_na,
+                    "category_results": result.category_results,
+                    "detailed_results": result.detailed_results,
+                    "recommendations": result.recommendations,
+                    "critical_gaps": result.critical_gaps
+                }
+                generator.generate_document(
+                    template_name="conformity_assessment_report.md.jinja2",
+                    metadata=template_data,
+                    output_path=args.output
+                )
+                print(f"\n✓ Conformity assessment report generated: {args.output}")
+
+        # Return exit code based on compliance status
+        if result.overall_status.value == "compliant":
+            return 0
+        elif result.overall_status.value == "non_compliant":
+            return 2  # Non-zero to indicate non-compliance
+        else:
+            return 1  # Partial compliance
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -1312,6 +1438,8 @@ def main():
         return cmd_generate_technical_doc(args)
     elif args.command == "bias-report":
         return cmd_bias_report(args)
+    elif args.command == "conformity-assessment":
+        return cmd_conformity_assessment(args)
     else:
         parser.print_help()
         return 1
