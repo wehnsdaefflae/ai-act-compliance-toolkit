@@ -18,12 +18,10 @@ from .document_generator import DocumentGenerator
 from .risk_assessment import AIActRiskAssessor, RiskLevel
 from .operational_metrics import OperationalMetricsTracker, MetricsAnalyzer
 from .audit_trail import AuditTrail, AuditEvent, AuditEventType, AuditReportGenerator
-from .version_control import VersionControl, MetadataVersion, VersionControlIntegration
 from .data_governance import (
     DataGovernanceTracker,
     DataSource,
     DataTransformation,
-    DataLineageGraph,
     DataType,
     DataQualityStatus,
     TransformationType
@@ -71,13 +69,9 @@ __all__ = [
     "AuditEvent",
     "AuditEventType",
     "AuditReportGenerator",
-    "VersionControl",
-    "MetadataVersion",
-    "VersionControlIntegration",
     "DataGovernanceTracker",
     "DataSource",
     "DataTransformation",
-    "DataLineageGraph",
     "DataType",
     "DataQualityStatus",
     "TransformationType",

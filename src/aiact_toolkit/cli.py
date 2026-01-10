@@ -55,15 +55,6 @@ Examples:
   # Generate audit report
   aiact-toolkit audit-trail metadata.json -o audit_report.md
 
-  # Compare metadata versions
-  aiact-toolkit compare-versions metadata.json 1 3
-
-  # View version history
-  aiact-toolkit version-history metadata.json
-
-  # View data lineage for a data source
-  aiact-toolkit data-lineage metadata.json --source-id training_data_v1
-
   # View data quality summary
   aiact-toolkit data-quality metadata.json
 
@@ -210,64 +201,6 @@ Examples:
     audit_parser.add_argument(
         "--event-type",
         help="Filter by event type"
-    )
-
-    # Compare versions command
-    compare_parser = subparsers.add_parser(
-        "compare-versions",
-        help="Compare two versions of metadata"
-    )
-    compare_parser.add_argument(
-        "metadata",
-        help="Path to metadata JSON file"
-    )
-    compare_parser.add_argument(
-        "version1",
-        type=int,
-        help="First version number"
-    )
-    compare_parser.add_argument(
-        "version2",
-        type=int,
-        help="Second version number"
-    )
-    compare_parser.add_argument(
-        "-o", "--output",
-        help="Save comparison report to file"
-    )
-
-    # Version history command
-    history_parser = subparsers.add_parser(
-        "version-history",
-        help="View version history of metadata"
-    )
-    history_parser.add_argument(
-        "metadata",
-        help="Path to metadata JSON file"
-    )
-    history_parser.add_argument(
-        "--since",
-        type=int,
-        help="Show changes since this version"
-    )
-
-    # Data lineage command
-    lineage_parser = subparsers.add_parser(
-        "data-lineage",
-        help="View data lineage and provenance for a data source"
-    )
-    lineage_parser.add_argument(
-        "metadata",
-        help="Path to metadata JSON file"
-    )
-    lineage_parser.add_argument(
-        "--source-id",
-        required=True,
-        help="Data source ID to trace lineage for"
-    )
-    lineage_parser.add_argument(
-        "-o", "--output",
-        help="Save lineage report to file"
     )
 
     # Data quality command
@@ -732,8 +665,8 @@ def cmd_audit_trail(args) -> int:
     """Handle audit-trail command."""
     try:
         # Load metadata
-        storage = MetadataStorage(enable_auditing=True, enable_versioning=False)
-        storage.load_from_file(args.metadata, load_audit=True, load_versions=False)
+        storage = MetadataStorage(enable_auditing=True)
+        storage.load_from_file(args.metadata)
 
         audit_trail = storage.get_audit_trail()
         if not audit_trail or not audit_trail.events:
@@ -792,182 +725,13 @@ def cmd_audit_trail(args) -> int:
         return 1
 
 
-def cmd_compare_versions(args) -> int:
-    """Handle compare-versions command."""
-    try:
-        # Load metadata with version control
-        storage = MetadataStorage(enable_auditing=False, enable_versioning=True)
-        storage.load_from_file(args.metadata, load_audit=False, load_versions=True)
-
-        version_control = storage.get_version_control()
-        if not version_control:
-            print("No version history found in metadata file.", file=sys.stderr)
-            return 1
-
-        # Compare versions
-        comparison = version_control.compare_versions(args.version1, args.version2)
-
-        if "error" in comparison:
-            print(f"Error: {comparison['error']}", file=sys.stderr)
-            return 1
-
-        print(f"Comparing Versions {args.version1} and {args.version2}")
-        print(f"Version {args.version1}: {comparison['timestamp1']}")
-        print(f"Version {args.version2}: {comparison['timestamp2']}")
-        print()
-        print(f"Total Changes: {comparison['total_changes']}")
-        print()
-
-        if comparison['changes']:
-            print("Changes:")
-            for change in comparison['changes']:
-                change_type = change['type']
-                if change_type == 'model_added':
-                    print(f"  + Model Added: {change['model_name']}")
-                elif change_type == 'model_removed':
-                    print(f"  - Model Removed: {change['model_name']}")
-                elif change_type == 'model_modified':
-                    print(f"  ~ Model Modified: {change['model_name']}")
-                elif change_type == 'data_source_added':
-                    print(f"  + Data Source Added: {change['data_source']}")
-                elif change_type == 'data_source_removed':
-                    print(f"  - Data Source Removed: {change['data_source']}")
-                elif change_type == 'risk_level_changed':
-                    print(f"  ! Risk Level: {change['old_level']} → {change['new_level']}")
-            print()
-        else:
-            print("No significant changes detected between versions.")
-
-        return 0
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-
-
-def cmd_version_history(args) -> int:
-    """Handle version-history command."""
-    try:
-        # Load metadata with version control
-        storage = MetadataStorage(enable_auditing=False, enable_versioning=True)
-        storage.load_from_file(args.metadata, load_audit=False, load_versions=True)
-
-        version_control = storage.get_version_control()
-        if not version_control or not version_control.versions:
-            print("No version history found in metadata file.", file=sys.stderr)
-            return 1
-
-        print(f"Version History for: {storage.system_name}")
-        print(f"Current Version: {version_control.current_version}")
-        print(f"Total Versions: {len(version_control.versions)}")
-        print()
-
-        if args.since:
-            changes = version_control.get_changes_since_version(args.since)
-            print(f"Changes since version {args.since}:")
-            print()
-            for change in changes['versions_changed']:
-                print(f"  Version {change['version']}: {change['timestamp']}")
-                print(f"    {change['description']}")
-                print(f"    Changed by: {change['changed_by']}")
-                print()
-        else:
-            history = version_control.get_version_history()
-            print("All Versions:")
-            for version in history:
-                print(f"  Version {version['version']}: {version['timestamp']}")
-                print(f"    {version['description']}")
-                print(f"    Changed by: {version['changed_by']}")
-                print()
-
-        return 0
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-
-
-def cmd_data_lineage(args) -> int:
-    """Handle data-lineage command."""
-    try:
-        # Load metadata with data governance
-        storage = MetadataStorage(enable_data_governance=True)
-        storage.load_from_file(args.metadata, load_data_governance=True)
-
-        governance_tracker = storage.get_data_governance_tracker()
-        if not governance_tracker:
-            print("No data governance information found in metadata file.", file=sys.stderr)
-            return 1
-
-        # Generate lineage report
-        lineage_report = governance_tracker.get_lineage_report(args.source_id)
-
-        if "error" in lineage_report:
-            print(f"Error: {lineage_report['error']}", file=sys.stderr)
-            return 1
-
-        print(f"Data Lineage Report for: {args.source_id}")
-        print(f"System: {governance_tracker.system_name}")
-        print()
-
-        source_info = lineage_report['source']
-        print(f"Data Source: {source_info['name']}")
-        print(f"  Type: {source_info['data_type']}")
-        print(f"  Description: {source_info['description']}")
-        if source_info.get('location'):
-            print(f"  Location: {source_info['location']}")
-        if source_info.get('size_records'):
-            print(f"  Records: {source_info['size_records']}")
-        print()
-
-        print(f"Lineage Depth: {lineage_report['lineage_depth']}")
-        print(f"Total Transformations: {lineage_report['total_transformations']}")
-        print()
-
-        if lineage_report['ancestor_sources']:
-            print("Ancestor Data Sources:")
-            for ancestor in lineage_report['ancestor_sources']:
-                print(f"  - {ancestor['name']} ({ancestor['data_type']})")
-                print(f"    {ancestor['description']}")
-            print()
-
-        if lineage_report['transformations']:
-            print("Transformations Applied:")
-            for trans in lineage_report['transformations']:
-                print(f"  - {trans['transformation_type']}: {trans['description']}")
-                print(f"    Performed: {trans['performed_at']}")
-                if trans.get('tool_used'):
-                    print(f"    Tool: {trans['tool_used']}")
-            print()
-
-        # Save report if requested
-        if args.output:
-            with open(args.output, 'w', encoding='utf-8') as f:
-                json.dump(lineage_report, f, indent=2, ensure_ascii=False)
-            print(f"✓ Lineage report saved: {args.output}")
-
-        return 0
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-
 
 def cmd_data_quality(args) -> int:
     """Handle data-quality command."""
     try:
         # Load metadata with data governance
-        storage = MetadataStorage(enable_data_governance=True)
-        storage.load_from_file(args.metadata, load_data_governance=True)
+        storage = MetadataStorage()
+        storage.load_from_file(args.metadata)
 
         governance_tracker = storage.get_data_governance_tracker()
         if not governance_tracker:
@@ -1040,8 +804,8 @@ def cmd_article10_report(args) -> int:
     """Handle article10-report command."""
     try:
         # Load metadata with data governance
-        storage = MetadataStorage(enable_data_governance=True)
-        storage.load_from_file(args.metadata, load_data_governance=True)
+        storage = MetadataStorage()
+        storage.load_from_file(args.metadata)
 
         governance_tracker = storage.get_data_governance_tracker()
         if not governance_tracker:
@@ -1422,12 +1186,6 @@ def main():
         return cmd_analyze_metrics(args)
     elif args.command == "audit-trail":
         return cmd_audit_trail(args)
-    elif args.command == "compare-versions":
-        return cmd_compare_versions(args)
-    elif args.command == "version-history":
-        return cmd_version_history(args)
-    elif args.command == "data-lineage":
-        return cmd_data_lineage(args)
     elif args.command == "data-quality":
         return cmd_data_quality(args)
     elif args.command == "article10-report":
