@@ -25,6 +25,8 @@ class MetadataStorage:
         self.operational_metrics: Dict[str, Any] = {}
         self.bias_analyses: List[Dict[str, Any]] = []
         self.created_at = datetime.now().isoformat()
+        # Dict interface for backward compatibility with monitors
+        self.metadata: Dict[str, Any] = {}
 
         # Optional audit trail and data governance
         self.audit_trail: Optional[AuditTrail] = AuditTrail(system_name) if enable_auditing else None
@@ -122,7 +124,7 @@ class MetadataStorage:
 
     def get_all_metadata(self) -> Dict[str, Any]:
         """Get all captured metadata in a structured format."""
-        metadata = {
+        result = {
             "system_name": self.system_name,
             "created_at": self.created_at,
             "timestamp": datetime.now().isoformat(),
@@ -136,24 +138,29 @@ class MetadataStorage:
             }
         }
 
+        # Include extra metadata from monitors (framework info, training history, etc.)
+        for key, value in self.metadata.items():
+            if key not in result:
+                result[key] = value
+
         if self.risk_assessment:
-            metadata["risk_assessment"] = self.risk_assessment
+            result["risk_assessment"] = self.risk_assessment
 
         if self.operational_metrics:
-            metadata["operational_metrics"] = self.operational_metrics
+            result["operational_metrics"] = self.operational_metrics
 
         if self.audit_trail:
-            metadata["audit_summary"] = self.audit_trail.generate_summary()
+            result["audit_summary"] = self.audit_trail.generate_summary()
 
         if self.data_governance_tracker:
-            metadata["data_governance"] = self.data_governance_tracker.to_dict()
-            metadata["data_quality_summary"] = self.data_governance_tracker.get_data_quality_summary()
-            metadata["privacy_summary"] = self.data_governance_tracker.get_privacy_summary()
+            result["data_governance"] = self.data_governance_tracker.to_dict()
+            result["data_quality_summary"] = self.data_governance_tracker.get_data_quality_summary()
+            result["privacy_summary"] = self.data_governance_tracker.get_privacy_summary()
 
         if self.bias_analyses:
-            metadata["bias_analyses"] = self.bias_analyses
+            result["bias_analyses"] = self.bias_analyses
 
-        return metadata
+        return result
 
     def _deduplicate_models(self) -> List[Dict[str, Any]]:
         """Remove duplicate model entries."""
@@ -192,3 +199,34 @@ class MetadataStorage:
         self.risk_assessment = {}
         self.operational_metrics = {}
         self.bias_analyses.clear()
+
+    def load_from_file(self, filepath: str):
+        """Load metadata from a JSON file."""
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        self.system_name = data.get("system_name", "unnamed_system")
+        self.models = data.get("models", [])
+        self.components = data.get("components", [])
+        self.data_sources = data.get("data_sources", [])
+        self.risk_assessment = data.get("risk_assessment", {})
+        self.operational_metrics = data.get("operational_metrics", {})
+        self.bias_analyses = data.get("bias_analyses", [])
+        self.created_at = data.get("created_at", datetime.now().isoformat())
+
+        # Restore extra metadata (framework info, training history, etc.)
+        known_keys = {"system_name", "created_at", "timestamp", "models", "components",
+                     "data_sources", "summary", "risk_assessment", "operational_metrics",
+                     "bias_analyses", "audit_summary", "audit_trail", "data_governance",
+                     "data_quality_summary", "privacy_summary"}
+        for key, value in data.items():
+            if key not in known_keys:
+                self.metadata[key] = value
+
+    def get_audit_trail(self) -> Optional[AuditTrail]:
+        """Get the audit trail instance."""
+        return self.audit_trail
+
+    def get_data_governance_tracker(self) -> Optional[DataGovernanceTracker]:
+        """Get the data governance tracker instance."""
+        return self.data_governance_tracker

@@ -4,11 +4,10 @@ Document Generator
 Handles generation of compliance documents from metadata using Jinja2 templates.
 """
 
-import os
 import json
 from typing import Dict, Any, List, Optional
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
 
 class DocumentGenerator:

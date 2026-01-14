@@ -283,7 +283,7 @@ class PyTorchMonitor:
 
     def get_metadata(self) -> Dict[str, Any]:
         """Get all collected metadata."""
-        return self.storage.get_metadata()
+        return self.storage.get_all_metadata()
 
     def save_to_file(self, filename: str):
         """
@@ -294,13 +294,3 @@ class PyTorchMonitor:
         """
         output_path = self.output_dir / filename
         self.storage.save_to_file(str(output_path))
-
-    def load_from_file(self, filename: str):
-        """
-        Load metadata from JSON file.
-
-        Args:
-            filename: Input filename
-        """
-        input_path = self.output_dir / filename
-        self.storage.load_from_file(str(input_path))

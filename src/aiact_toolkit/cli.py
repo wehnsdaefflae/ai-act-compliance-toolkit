@@ -31,6 +31,9 @@ def create_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Quick compliance status overview
+  aiact-toolkit status metadata.json
+
   # Generate all documents from metadata
   aiact-toolkit generate metadata.json -o output/
 
@@ -324,7 +327,96 @@ Examples:
         help="Output format (default: markdown)"
     )
 
+    # Quick status command
+    status_parser = subparsers.add_parser(
+        "status",
+        help="Quick compliance status overview - shows key metrics at a glance"
+    )
+    status_parser.add_argument(
+        "metadata",
+        help="Path to metadata JSON file"
+    )
+
     return parser
+
+
+def cmd_status(args) -> int:
+    """Handle status command - quick compliance overview."""
+    try:
+        generator = DocumentGenerator()
+        metadata = generator.load_metadata(args.metadata)
+
+        system_name = metadata.get("system_name", "Unknown System")
+        print(f"\n{'='*60}")
+        print(f" EU AI ACT COMPLIANCE STATUS: {system_name}")
+        print(f"{'='*60}\n")
+
+        # Risk Level
+        risk = metadata.get("risk_assessment", {})
+        risk_level = risk.get("risk_level", "not assessed")
+        risk_symbols = {"unacceptable": "⛔", "high": "⚠️ ", "limited": "ℹ️ ", "minimal": "✓ "}
+        print(f"Risk Level:        {risk_symbols.get(risk_level, '❓')} {risk_level.upper()}")
+
+        # Models
+        models = metadata.get("models", [])
+        print(f"Models Captured:   {len(models)}")
+
+        # Data Sources
+        data_sources = metadata.get("data_sources", [])
+        print(f"Data Sources:      {len(data_sources)}")
+
+        # Audit Trail
+        audit = metadata.get("audit_summary", {})
+        audit_events = audit.get("total_events", 0)
+        print(f"Audit Events:      {audit_events}")
+
+        # Bias Analysis
+        bias = metadata.get("bias_analyses", [])
+        print(f"Bias Analyses:     {len(bias)}")
+
+        # Quick Conformity Check
+        print(f"\n{'-'*60}")
+        print(" QUICK CONFORMITY CHECK")
+        print(f"{'-'*60}")
+
+        checks = [
+            ("Risk Assessment", bool(risk.get("risk_level"))),
+            ("Models Documented", len(models) > 0),
+            ("Data Sources Tracked", len(data_sources) > 0),
+            ("Audit Trail Active", audit_events > 0),
+            ("Bias Analysis Done", len(bias) > 0),
+        ]
+
+        passed = sum(1 for _, ok in checks if ok)
+        for name, ok in checks:
+            status = "✓" if ok else "✗"
+            print(f"  {status} {name}")
+
+        print(f"\n  Score: {passed}/{len(checks)} checks passed")
+
+        # Recommendation
+        print(f"\n{'-'*60}")
+        if passed == len(checks):
+            print(" ✓ Ready for detailed conformity assessment")
+        elif passed >= 3:
+            print(" ~ Partial compliance - run 'conformity-assessment' for details")
+        else:
+            print(" ✗ Missing key compliance data - review recommendations below")
+
+        if not risk.get("risk_level"):
+            print("   → Run: aiact-toolkit assess-risk metadata.json")
+        if len(bias) == 0 and risk_level == "high":
+            print("   → Run: aiact-toolkit bias-report metadata.json")
+
+        print(f"{'='*60}\n")
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 def cmd_generate(args) -> int:
@@ -1198,6 +1290,8 @@ def main():
         return cmd_bias_report(args)
     elif args.command == "conformity-assessment":
         return cmd_conformity_assessment(args)
+    elif args.command == "status":
+        return cmd_status(args)
     else:
         parser.print_help()
         return 1
