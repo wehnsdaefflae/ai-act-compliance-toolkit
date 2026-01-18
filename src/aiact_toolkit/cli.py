@@ -23,6 +23,17 @@ from .bias_detection import BiasDetector, BiasReportGenerator
 from .conformity_assessment import ConformityAssessor, generate_conformity_report
 
 
+# Risk level display symbols (used across CLI commands)
+RISK_SYMBOLS = {
+    "unacceptable": "⛔",
+    "high": "⚠️",
+    "limited": "ℹ️",
+    "minimal": "✓",
+    "unknown": "❓",
+    "not assessed": "❓"
+}
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser for CLI."""
     parser = argparse.ArgumentParser(
@@ -354,8 +365,7 @@ def cmd_status(args) -> int:
         # Risk Level
         risk = metadata.get("risk_assessment", {})
         risk_level = risk.get("risk_level", "not assessed")
-        risk_symbols = {"unacceptable": "⛔", "high": "⚠️ ", "limited": "ℹ️ ", "minimal": "✓ "}
-        print(f"Risk Level:        {risk_symbols.get(risk_level, '❓')} {risk_level.upper()}")
+        print(f"Risk Level:        {RISK_SYMBOLS.get(risk_level, '❓')} {risk_level.upper()}")
 
         # Models
         models = metadata.get("models", [])
@@ -582,16 +592,7 @@ def cmd_assess_risk(args) -> int:
         risk_level = assessment["risk_level"].upper()
         confidence = assessment["confidence"] * 100
 
-        # Color-coded output based on risk level
-        risk_symbols = {
-            "unacceptable": "⛔",
-            "high": "⚠️",
-            "limited": "ℹ️",
-            "minimal": "✓",
-            "unknown": "❓"
-        }
-
-        symbol = risk_symbols.get(assessment["risk_level"], "?")
+        symbol = RISK_SYMBOLS.get(assessment["risk_level"], "❓")
         print(f"{symbol} Risk Level: {risk_level}")
         print(f"Confidence: {confidence}%")
         print()
@@ -707,9 +708,9 @@ def cmd_analyze_metrics(args) -> int:
             print(f"  Total Tokens: {tokens.get('total_tokens', 0):,}")
             print()
 
-        # Identify issues
-        analyzer = MetricsAnalyzer()
-        issues = analyzer.identify_issues(metrics)
+        # Identify issues using MetricsAnalyzer
+        analysis = MetricsAnalyzer.analyze_from_dict(metrics)
+        issues = analysis.get("issues_detected", [])
 
         if issues:
             print("🔍 Analysis & Recommendations:")
@@ -855,16 +856,12 @@ def cmd_data_quality(args) -> int:
         print()
 
         # Detailed view if requested
-        if args.detailed and governance_tracker.lineage_graph.sources:
+        if args.detailed and governance_tracker.sources:
             print("Detailed Source Information:")
-            for source in governance_tracker.lineage_graph.sources.values():
+            for source in governance_tracker.sources.values():
                 print(f"\n  {source.name} ({source.source_id})")
                 print(f"    Type: {source.data_type.value}")
                 print(f"    Quality Status: {source.quality_status.value}")
-                if source.quality_metrics:
-                    print(f"    Quality Metrics:")
-                    for metric, data in source.quality_metrics.items():
-                        print(f"      - {metric}: {data['value']}")
                 if source.personal_data:
                     print(f"    ⚠ Contains Personal Data (GDPR compliance required)")
                 if source.sensitive_data:

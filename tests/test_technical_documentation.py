@@ -307,7 +307,7 @@ class TestTechnicalDocumentationGenerator:
 
         # Verify version control info
         version_ctrl = lifecycle["version_control"]
-        assert version_ctrl["current_version"] == "3"
+        assert str(version_ctrl["current_version"]) == "3"
         assert version_ctrl["total_versions"] == 3
 
     def test_conformity_assessment_high_risk(self):

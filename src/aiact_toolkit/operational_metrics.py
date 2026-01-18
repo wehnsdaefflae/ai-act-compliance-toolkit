@@ -111,20 +111,20 @@ class MetricsAnalyzer:
     """Analyzes operational metrics for compliance reporting."""
 
     @staticmethod
-    def analyze(metrics: OperationalMetricsTracker) -> Dict[str, Any]:
-        """Analyze metrics and generate insights."""
-        summary = metrics.get_summary_statistics()
-
-        # Identify issues
+    def analyze_from_dict(metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze metrics from a dictionary (used by CLI)."""
         issues = []
-        if summary["error_rate"] > 0.05:
-            issues.append(f"High error rate: {summary['error_rate']:.2%}")
+        summary = metrics.get("summary", metrics)
 
-        if summary["average_execution_time_ms"] > 5000:
-            issues.append(f"Slow average response time: {summary['average_execution_time_ms']:.0f}ms")
+        error_rate = summary.get("error_rate", 0)
+        if error_rate > 0.05:
+            issues.append(f"High error rate: {error_rate:.2%}")
+
+        avg_time = summary.get("average_execution_time_ms", 0)
+        if avg_time > 5000:
+            issues.append(f"Slow average response time: {avg_time:.0f}ms")
 
         return {
-            "summary": summary,
             "issues_detected": issues,
             "health_status": "healthy" if not issues else "needs_attention",
             "analyzed_at": datetime.now().isoformat()

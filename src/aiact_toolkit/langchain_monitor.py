@@ -372,14 +372,14 @@ class LangChainMonitor:
 
         # Include operational metrics if available
         if self.metrics_tracker:
-            metadata["operational_metrics"] = self.metrics_tracker.get_summary()
+            metadata["operational_metrics"] = self.metrics_tracker.get_summary_statistics()
 
         return metadata
 
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get operational metrics summary."""
         if self.metrics_tracker:
-            return self.metrics_tracker.get_summary()
+            return self.metrics_tracker.get_summary_statistics()
         return {"message": "Metrics tracking not enabled"}
 
     def save_to_file(self, filepath: str):

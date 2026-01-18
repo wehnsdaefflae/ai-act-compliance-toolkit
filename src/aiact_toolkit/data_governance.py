@@ -155,14 +155,18 @@ class DataGovernanceTracker:
     def get_data_quality_summary(self) -> Dict[str, Any]:
         """Get summary of data quality across all sources."""
         if not self.sources:
-            return {"total_sources": 0, "quality_distribution": {}}
+            return {"total_sources": 0, "sources_with_quality_metrics": 0, "quality_distribution": {}}
 
         quality_counts = {status.value: 0 for status in DataQualityStatus}
+        assessed_count = 0
         for source in self.sources.values():
             quality_counts[source.quality_status.value] += 1
+            if source.quality_status != DataQualityStatus.UNKNOWN:
+                assessed_count += 1
 
         return {
             "total_sources": len(self.sources),
+            "sources_with_quality_metrics": assessed_count,
             "quality_distribution": quality_counts
         }
 
@@ -172,7 +176,9 @@ class DataGovernanceTracker:
         return {
             "total_sources": len(sources),
             "personal_data_sources": sum(1 for s in sources if s.personal_data),
-            "sensitive_data_sources": sum(1 for s in sources if s.sensitive_data)
+            "sensitive_data_sources": sum(1 for s in sources if s.sensitive_data),
+            "sources_with_license": 0,  # Not tracked in proof-of-concept
+            "sources_with_copyright": 0  # Not tracked in proof-of-concept
         }
 
     def generate_article10_report(self) -> Dict[str, Any]:
