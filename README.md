@@ -313,6 +313,7 @@ ai-act-compliance-toolkit/
 │
 ├── src/aiact_toolkit/
 │   ├── __init__.py
+│   ├── base_monitor.py              # Base class for framework monitors
 │   ├── langchain_monitor.py         # LangChain Integration
 │   ├── pytorch_monitor.py           # PyTorch Integration
 │   ├── tensorflow_monitor.py        # TensorFlow Integration
@@ -322,7 +323,6 @@ ai-act-compliance-toolkit/
 │   ├── risk_assessment.py           # Risikobewertung
 │   ├── conformity_assessment.py     # Konformitätsbewertung (Artikel 43-46)
 │   ├── audit_trail.py               # Audit Trail (Artikel 12)
-│   ├── version_control.py           # Versionskontrolle
 │   ├── data_governance.py           # Data Governance (Artikel 10)
 │   ├── bias_detection.py            # Bias-Erkennung und Fairness
 │   ├── operational_metrics.py       # Metriken-Tracking

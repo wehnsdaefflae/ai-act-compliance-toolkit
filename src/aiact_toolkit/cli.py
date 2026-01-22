@@ -418,6 +418,28 @@ def cmd_status(args) -> int:
         if len(bias) == 0 and risk_level == "high":
             print("   → Run: aiact-toolkit bias-report metadata.json")
 
+        # Available Documents Section
+        print(f"\n{'-'*60}")
+        print(" AVAILABLE COMPLIANCE DOCUMENTS")
+        print(f"{'-'*60}")
+
+        documents = [
+            ("Model Card", "Article 13", len(models) > 0),
+            ("Technical Documentation", "Article 11", len(models) > 0),
+            ("Conformity Assessment", "Articles 43-46", len(models) > 0),
+            ("GDPR Data Protection Impact Assessment", "GDPR Art. 35", len(data_sources) > 0),
+            ("Bias & Fairness Report", "Article 10.2f", len(bias) > 0 or len(models) > 0),
+            ("Audit Trail Report", "Article 12", audit_events > 0),
+        ]
+
+        for doc_name, article, ready in documents:
+            status = "✓" if ready else "○"
+            print(f"  {status} {doc_name:<40} [{article}]")
+
+        ready_count = sum(1 for _, _, r in documents if r)
+        print(f"\n  {ready_count}/{len(documents)} documents ready to generate")
+        print(f"  → Run: aiact-toolkit generate {args.metadata} -o compliance_docs/")
+
         print(f"{'='*60}\n")
         return 0
 

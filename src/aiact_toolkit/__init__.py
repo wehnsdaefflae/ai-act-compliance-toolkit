@@ -10,6 +10,7 @@ Supports multiple frameworks:
 - TensorFlow/Keras
 """
 
+from .base_monitor import BaseFrameworkMonitor
 from .langchain_monitor import LangChainMonitor
 from .pytorch_monitor import PyTorchMonitor
 from .tensorflow_monitor import TensorFlowMonitor
@@ -56,6 +57,7 @@ from .conformity_assessment import (
 
 __version__ = "0.2.0"
 __all__ = [
+    "BaseFrameworkMonitor",
     "LangChainMonitor",
     "PyTorchMonitor",
     "TensorFlowMonitor",

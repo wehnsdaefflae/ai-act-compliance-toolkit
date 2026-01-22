@@ -6,17 +6,17 @@ import sys
 import os
 from datetime import datetime
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add src to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from src.aiact_toolkit.conformity_assessment import (
+from aiact_toolkit.conformity_assessment import (
     ConformityAssessor,
     ComplianceStatus,
     RequirementCategory,
     generate_conformity_report
 )
-from src.aiact_toolkit.metadata_storage import MetadataStorage
-from src.aiact_toolkit.data_governance import DataType
+from aiact_toolkit.metadata_storage import MetadataStorage
+from aiact_toolkit.data_governance import DataType
 
 
 def test_minimal_risk_system():
