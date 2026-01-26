@@ -183,20 +183,46 @@ class DataGovernanceTracker:
 
     def generate_article10_report(self) -> Dict[str, Any]:
         """Generate compliance report for EU AI Act Article 10."""
+        # Count sources by type
+        sources_by_type = {dt.value: 0 for dt in DataType}
+        for src in self.sources.values():
+            sources_by_type[src.data_type.value] = sources_by_type.get(src.data_type.value, 0) + 1
+
+        # Count transformations by type
+        transforms_by_type = {tt.value: 0 for tt in TransformationType}
+        for t in self.transformations:
+            transforms_by_type[t.transformation_type.value] = transforms_by_type.get(t.transformation_type.value, 0) + 1
+
+        # Basic compliance checks
+        quality_summary = self.get_data_quality_summary()
+        checks_passed = sum([
+            len(self.sources) > 0,
+            quality_summary["sources_with_quality_metrics"] > 0,
+            any(s.personal_data for s in self.sources.values()) is False or len(self.sources) > 0,
+        ])
+        checks_total = 3
+
         return {
             "system_name": self.system_name,
             "report_generated": datetime.now().isoformat(),
             "article": "EU AI Act Article 10 - Data and Data Governance",
             "data_sources": {
                 "total": len(self.sources),
+                "by_type": sources_by_type,
                 "sources": [s.to_dict() for s in self.sources.values()]
             },
             "transformations": {
                 "total": len(self.transformations),
+                "by_type": transforms_by_type,
                 "transformations": [t.to_dict() for t in self.transformations]
             },
-            "data_quality": self.get_data_quality_summary(),
-            "privacy_compliance": self.get_privacy_summary()
+            "data_quality": quality_summary,
+            "privacy_compliance": self.get_privacy_summary(),
+            "compliance_checks": {
+                "total": checks_total,
+                "passed": checks_passed,
+                "failed": checks_total - checks_passed
+            }
         }
 
     def to_dict(self) -> Dict[str, Any]:

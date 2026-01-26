@@ -14,14 +14,7 @@ Model cards provide standardized documentation of ML models including:
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-from enum import Enum
 import json
-
-
-class ModelCardVersion(str, Enum):
-    """Model card specification version."""
-    V1_0 = "1.0"
-    V2_0 = "2.0"
 
 
 @dataclass
@@ -125,7 +118,7 @@ class ModelCard:
     limitations: Optional[Limitations] = None
     regulatory_compliance: Optional[RegulatoryCompliance] = None
     additional_info: Dict[str, Any] = field(default_factory=dict)
-    card_version: str = ModelCardVersion.V2_0.value
+    card_version: str = "2.0"
     generated_date: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
@@ -448,10 +441,6 @@ class ModelCardGenerator:
         # Add operational metrics summary
         if "operational_metrics" in metadata:
             additional["operational_monitoring"] = "Enabled"
-
-        # Add versioning info
-        if "version_control" in metadata:
-            additional["version_control"] = "Enabled"
 
         # Add framework-specific info
         if "components" in metadata:

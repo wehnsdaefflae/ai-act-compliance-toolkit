@@ -10,7 +10,8 @@ protected attributes (gender, age, ethnicity, etc.).
 
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
+from collections import Counter, defaultdict
 import json
 
 
@@ -98,7 +99,7 @@ class BiasDetector:
             BiasAnalysisResult with detected biases
         """
         metrics = []
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Check data availability
         if not data:
@@ -177,7 +178,7 @@ class BiasDetector:
             BiasAnalysisResult with detected biases in predictions
         """
         metrics = []
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Validate inputs
         if not predictions or not ground_truth:
@@ -256,7 +257,6 @@ class BiasDetector:
     ) -> BiasMetric:
         """Calculate representation bias (class imbalance) for a protected attribute"""
         # Count occurrences
-        from collections import Counter
         counts = Counter(values)
         total = len(values)
 
@@ -357,7 +357,6 @@ class BiasDetector:
         timestamp: str
     ) -> Optional[BiasMetric]:
         """Calculate Equal Opportunity (TPR equality across groups)"""
-        from collections import defaultdict
 
         # Group by protected attribute, only for positive ground truth
         groups_tpr = defaultdict(lambda: {'tp': 0, 'fn': 0})
@@ -407,7 +406,6 @@ class BiasDetector:
         timestamp: str
     ) -> Optional[BiasMetric]:
         """Calculate Demographic Parity (equal positive prediction rates)"""
-        from collections import defaultdict
 
         groups = defaultdict(lambda: {'total': 0, 'positive': 0})
 
@@ -453,7 +451,6 @@ class BiasDetector:
         timestamp: str
     ) -> Optional[BiasMetric]:
         """Calculate Predictive Parity (PPV equality across groups)"""
-        from collections import defaultdict
 
         groups_ppv = defaultdict(lambda: {'tp': 0, 'fp': 0})
 
@@ -648,7 +645,7 @@ class BiasReportGenerator:
                 'total_analyses': len(analysis_results),
                 'overall_risk_level': overall_risk,
                 'average_fairness_score': round(avg_fairness, 3),
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             },
             'analyses': [r.to_dict() for r in analysis_results],
             'aggregated_recommendations': unique_recommendations,

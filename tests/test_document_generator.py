@@ -204,13 +204,3 @@ class TestDocumentGenerator:
 
         for filepath in generated:
             assert Path(filepath).exists()
-
-
-def run_tests():
-    """Run all tests."""
-    import pytest
-    pytest.main([__file__, "-v"])
-
-
-if __name__ == "__main__":
-    run_tests()

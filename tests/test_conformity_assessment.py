@@ -306,38 +306,3 @@ def test_category_compliance():
         print(f"Record-Keeping Compliance: {rk_result['compliance_percentage']:.1f}%")
 
     print("\n✓ Test passed: Category compliance tracked correctly")
-
-
-def run_all_tests():
-    """Run all conformity assessment tests"""
-    print("CONFORMITY ASSESSMENT MODULE TESTS")
-    print("="*80)
-    print()
-
-    try:
-        test_minimal_risk_system()
-        test_high_risk_system_without_compliance()
-        test_high_risk_system_with_full_compliance()
-        test_conformity_report_generation()
-        test_category_compliance()
-
-        print("\n" + "="*80)
-        print("ALL TESTS PASSED ✓")
-        print("="*80)
-        return True
-
-    except AssertionError as e:
-        print(f"\n✗ Test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-    except Exception as e:
-        print(f"\n✗ Test error: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
-if __name__ == "__main__":
-    success = run_all_tests()
-    sys.exit(0 if success else 1)

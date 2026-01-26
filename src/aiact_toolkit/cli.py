@@ -7,10 +7,10 @@ Command-line interface for generating compliance documents from captured metadat
 import sys
 import json
 from pathlib import Path
-from typing import Optional
 import argparse
 from datetime import datetime
 
+from . import __version__
 from .document_generator import DocumentGenerator
 from .metadata_storage import MetadataStorage
 from .risk_assessment import AIActRiskAssessor
@@ -21,7 +21,6 @@ from .model_card import ModelCardGenerator, generate_model_cards_for_all_models
 from .technical_documentation import TechnicalDocumentationGenerator
 from .bias_detection import BiasDetector, BiasReportGenerator
 from .conformity_assessment import ConformityAssessor, generate_conformity_report
-
 
 # Risk level display symbols (used across CLI commands)
 RISK_SYMBOLS = {
@@ -93,6 +92,8 @@ Examples:
   aiact-toolkit conformity-assessment metadata.json --summary
         """
     )
+
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -418,6 +419,29 @@ def cmd_status(args) -> int:
         if len(bias) == 0 and risk_level == "high":
             print("   → Run: aiact-toolkit bias-report metadata.json")
 
+        # EU AI Act Article Coverage
+        print(f"\n{'-'*60}")
+        print(" EU AI ACT ARTICLE COVERAGE")
+        print(f"{'-'*60}")
+
+        has_governance = bool(metadata.get("data_governance"))
+        has_ops = bool(metadata.get("operational_metrics"))
+        articles = [
+            ("Art. 9",  "Risk Management",        bool(risk.get("risk_level"))),
+            ("Art. 10", "Data Governance",         len(data_sources) > 0 and has_governance),
+            ("Art. 11", "Technical Documentation",  len(models) > 0),
+            ("Art. 12", "Record-Keeping",          audit_events > 0),
+            ("Art. 13", "Transparency",            len(models) > 0),
+            ("Art. 14", "Human Oversight",         metadata.get("human_oversight_enabled", False)),
+            ("Art. 15", "Accuracy & Robustness",   has_ops or len(bias) > 0),
+        ]
+
+        covered = sum(1 for _, _, ok in articles if ok)
+        for art_num, art_name, ok in articles:
+            mark = "✓" if ok else "○"
+            print(f"  {mark} {art_num}  {art_name}")
+        print(f"\n  Coverage: {covered}/{len(articles)} articles addressed ({100*covered//len(articles)}%)")
+
         # Available Documents Section
         print(f"\n{'-'*60}")
         print(" AVAILABLE COMPLIANCE DOCUMENTS")
@@ -443,9 +467,6 @@ def cmd_status(args) -> int:
         print(f"{'='*60}\n")
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -499,12 +520,6 @@ def cmd_generate(args) -> int:
         print("\n✓ Document generation complete!")
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -580,9 +595,6 @@ def cmd_validate(args) -> int:
 
         return 0 if validation["valid"] else 1
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -655,9 +667,6 @@ def cmd_assess_risk(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -768,9 +777,6 @@ def cmd_analyze_metrics(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -832,9 +838,6 @@ def cmd_audit_trail(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -903,9 +906,6 @@ def cmd_data_quality(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -976,9 +976,6 @@ def cmd_article10_report(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -1060,12 +1057,6 @@ def cmd_generate_model_card(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -1112,12 +1103,6 @@ def cmd_generate_technical_doc(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -1168,12 +1153,6 @@ def cmd_bias_report(args) -> int:
 
         return 0
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -1264,12 +1243,6 @@ def cmd_conformity_assessment(args) -> int:
         else:
             return 1  # Partial compliance
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -1285,35 +1258,26 @@ def main():
         return 1
 
     # Route to command handlers
-    if args.command == "generate":
-        return cmd_generate(args)
-    elif args.command == "list-templates":
-        return cmd_list_templates(args)
-    elif args.command == "validate":
-        return cmd_validate(args)
-    elif args.command == "assess-risk":
-        return cmd_assess_risk(args)
-    elif args.command == "analyze-metrics":
-        return cmd_analyze_metrics(args)
-    elif args.command == "audit-trail":
-        return cmd_audit_trail(args)
-    elif args.command == "data-quality":
-        return cmd_data_quality(args)
-    elif args.command == "article10-report":
-        return cmd_article10_report(args)
-    elif args.command == "generate-model-card":
-        return cmd_generate_model_card(args)
-    elif args.command == "generate-technical-doc":
-        return cmd_generate_technical_doc(args)
-    elif args.command == "bias-report":
-        return cmd_bias_report(args)
-    elif args.command == "conformity-assessment":
-        return cmd_conformity_assessment(args)
-    elif args.command == "status":
-        return cmd_status(args)
-    else:
-        parser.print_help()
-        return 1
+    commands = {
+        "generate": cmd_generate,
+        "list-templates": cmd_list_templates,
+        "validate": cmd_validate,
+        "assess-risk": cmd_assess_risk,
+        "analyze-metrics": cmd_analyze_metrics,
+        "audit-trail": cmd_audit_trail,
+        "data-quality": cmd_data_quality,
+        "article10-report": cmd_article10_report,
+        "generate-model-card": cmd_generate_model_card,
+        "generate-technical-doc": cmd_generate_technical_doc,
+        "bias-report": cmd_bias_report,
+        "conformity-assessment": cmd_conformity_assessment,
+        "status": cmd_status,
+    }
+    handler = commands.get(args.command)
+    if handler:
+        return handler(args)
+    parser.print_help()
+    return 1
 
 
 if __name__ == "__main__":
