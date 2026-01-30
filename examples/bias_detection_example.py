@@ -172,8 +172,7 @@ def example_integration_with_metadata_storage():
     # Create metadata storage for a medical diagnosis system
     storage = MetadataStorage(
         system_name="medical_diagnosis_assistant",
-        enable_auditing=True,
-        enable_versioning=True
+        enable_auditing=True
     )
 
     # Add some model info
