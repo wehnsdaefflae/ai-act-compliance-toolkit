@@ -312,7 +312,6 @@ class BiasDetector:
             return None
 
         # Group by protected attribute
-        from collections import defaultdict
         groups = defaultdict(list)
         for attr_val, target_val in zip(attr_values, target_values):
             groups[attr_val].append(target_val)

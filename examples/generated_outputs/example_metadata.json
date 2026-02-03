@@ -1,5 +1,5 @@
 {
-  "system_name": "llama2_complete",
+  "system_name": "llama2_medical_chatbot",
   "created_at": "2025-10-30T12:44:32.092885",
   "timestamp": "2025-10-30T12:44:45.018687",
   "models": [
@@ -34,6 +34,36 @@
       "glob_pattern": "*.pdf"
     }
   ],
+  "risk_assessment": {
+    "risk_level": "high",
+    "confidence": 0.95,
+    "use_case": "Medical information chatbot providing health-related responses",
+    "application_domain": "healthcare",
+    "risk_factors": [
+      "Healthcare domain application",
+      "Medical advice generation",
+      "Patient health information processing"
+    ],
+    "compliance_requirements": [
+      "Full Article 9 Risk Management System",
+      "Article 10 Data Governance with bias monitoring",
+      "Article 11 Technical Documentation",
+      "Article 12 Automatic Logging",
+      "Article 13 Transparency and User Information",
+      "Article 14 Human Oversight mechanisms",
+      "Article 15 Accuracy, Robustness, Cybersecurity"
+    ],
+    "recommendations": [
+      "Implement human oversight for medical responses",
+      "Add disclaimer about AI-generated content",
+      "Establish monitoring for response accuracy",
+      "Document data sources and model limitations"
+    ]
+  },
+  "audit_summary": {
+    "total_events": 5,
+    "event_types": ["model_registered", "data_source_added", "risk_assessment_completed"]
+  },
   "summary": {
     "total_models": 2,
     "total_components": 0,
