@@ -80,10 +80,6 @@ class AIActRiskAssessor:
         "emotion_recognition", "biometric_categorization"
     ]
 
-    def __init__(self):
-        """Initialize risk assessor."""
-        pass
-
     def assess_risk(
         self,
         metadata: Dict[str, Any],

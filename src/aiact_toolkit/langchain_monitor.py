@@ -7,8 +7,6 @@ It uses LangChain's callback system to intercept and record:
 - LLM calls
 - Data loading operations
 - Chain compositions
-
-Approximately 180 lines as per prototype specification.
 """
 
 from typing import Any, Dict, List, Optional
@@ -336,7 +334,7 @@ class LangChainMonitor:
             original_init = loader_cls.__init__
             storage = self.storage
 
-            def make_patched_init(lname, dtype):
+            def make_patched_init(lname, dtype, orig_init, stor):
                 def patched_init(instance, *args, **kwargs):
                     # Capture data source
                     # Try different parameter names used by different loaders
@@ -350,12 +348,12 @@ class LangChainMonitor:
                     # Also capture glob pattern if it exists (for DirectoryLoader)
                     if "glob" in kwargs:
                         data_source_info["glob_pattern"] = kwargs["glob"]
-                    storage.add_data_source(data_source_info)
-                    original_init(instance, *args, **kwargs)
+                    stor.add_data_source(data_source_info)
+                    orig_init(instance, *args, **kwargs)
                 return patched_init
 
             loader_cls._aiact_original_init = original_init
-            loader_cls.__init__ = make_patched_init(loader_name, data_type)
+            loader_cls.__init__ = make_patched_init(loader_name, data_type, original_init, storage)
             self._patched_classes.append(loader_cls)
 
     def _unpatch_langchain_classes(self):

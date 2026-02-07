@@ -843,7 +843,6 @@ def cmd_audit_trail(args) -> int:
         return 1
 
 
-
 def cmd_data_quality(args) -> int:
     """Handle data-quality command."""
     try:
@@ -1178,59 +1177,45 @@ def cmd_conformity_assessment(args) -> int:
 
         # Generate detailed report if output specified
         if args.output and not args.summary:
+            report_data = {
+                "system_name": result.system_name,
+                "assessment_date": result.assessment_date,
+                "risk_level": result.risk_level,
+                "overall_status": result.overall_status.value,
+                "requirements_checked": result.requirements_checked,
+                "requirements_passed": result.requirements_passed,
+                "requirements_failed": result.requirements_failed,
+                "requirements_partial": result.requirements_partial,
+                "requirements_na": result.requirements_na,
+                "category_results": result.category_results,
+                "detailed_results": result.detailed_results,
+                "recommendations": result.recommendations,
+                "critical_gaps": result.critical_gaps
+            }
+
             if args.format == "json":
-                # Save as JSON
-                output_data = {
-                    "system_name": result.system_name,
-                    "assessment_date": result.assessment_date,
-                    "risk_level": result.risk_level,
-                    "overall_status": result.overall_status.value,
-                    "requirements_checked": result.requirements_checked,
-                    "requirements_passed": result.requirements_passed,
-                    "requirements_failed": result.requirements_failed,
-                    "requirements_partial": result.requirements_partial,
-                    "requirements_na": result.requirements_na,
-                    "category_results": result.category_results,
-                    "detailed_results": [
-                        {
-                            "requirement_id": req.requirement_id,
-                            "category": req.category.value,
-                            "article": req.article,
-                            "description": req.description,
-                            "mandatory": req.mandatory,
-                            "status": req.status.value,
-                            "verification_method": req.verification_method,
-                            "evidence": req.evidence,
-                            "findings": req.findings
-                        }
-                        for req in result.detailed_results
-                    ],
-                    "recommendations": result.recommendations,
-                    "critical_gaps": result.critical_gaps
-                }
+                # Serialize detailed_results for JSON output
+                report_data["detailed_results"] = [
+                    {
+                        "requirement_id": req.requirement_id,
+                        "category": req.category.value,
+                        "article": req.article,
+                        "description": req.description,
+                        "mandatory": req.mandatory,
+                        "status": req.status.value,
+                        "verification_method": req.verification_method,
+                        "evidence": req.evidence,
+                        "findings": req.findings
+                    }
+                    for req in result.detailed_results
+                ]
                 with open(args.output, 'w', encoding='utf-8') as f:
-                    json.dump(output_data, f, indent=2, ensure_ascii=False)
+                    json.dump(report_data, f, indent=2, ensure_ascii=False)
                 print(f"\n✓ Conformity assessment saved (JSON): {args.output}")
             else:
-                # Save as markdown using template
-                template_data = {
-                    "system_name": result.system_name,
-                    "assessment_date": result.assessment_date,
-                    "risk_level": result.risk_level,
-                    "overall_status": result.overall_status.value,
-                    "requirements_checked": result.requirements_checked,
-                    "requirements_passed": result.requirements_passed,
-                    "requirements_failed": result.requirements_failed,
-                    "requirements_partial": result.requirements_partial,
-                    "requirements_na": result.requirements_na,
-                    "category_results": result.category_results,
-                    "detailed_results": result.detailed_results,
-                    "recommendations": result.recommendations,
-                    "critical_gaps": result.critical_gaps
-                }
                 generator.generate_document(
                     template_name="conformity_assessment_report.md.jinja2",
-                    metadata=template_data,
+                    metadata=report_data,
                     output_path=args.output
                 )
                 print(f"\n✓ Conformity assessment report generated: {args.output}")

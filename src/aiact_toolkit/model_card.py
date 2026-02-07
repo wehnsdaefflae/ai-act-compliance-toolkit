@@ -249,9 +249,6 @@ class ModelCardGenerator:
         if "use_case" in metadata:
             primary_uses.append(metadata["use_case"])
 
-        # Extract from description
-        description = metadata.get("description", "")
-
         return IntendedUse(
             primary_uses=primary_uses if primary_uses else ["General AI/ML application"],
             primary_users=metadata.get("target_users", ["Developers", "Data Scientists"]),

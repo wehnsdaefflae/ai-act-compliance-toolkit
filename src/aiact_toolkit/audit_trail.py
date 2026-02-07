@@ -94,6 +94,30 @@ class AuditTrail:
             "audit_trail_created": self.created_at
         }
 
+    def verify_integrity(self) -> Dict[str, Any]:
+        """Verify integrity of the audit trail by checking event consistency."""
+        corrupted = []
+        prev_timestamp = None
+
+        for event in self.events:
+            # Check required fields
+            if not event.event_id or not event.timestamp or not event.event_type:
+                corrupted.append(event.event_id or "unknown")
+                continue
+
+            # Check chronological ordering
+            if prev_timestamp and event.timestamp < prev_timestamp:
+                corrupted.append(event.event_id)
+
+            prev_timestamp = event.timestamp
+
+        return {
+            "total_events": len(self.events),
+            "verified": len(self.events) - len(corrupted),
+            "corrupted": corrupted,
+            "integrity_status": "intact" if not corrupted else "compromised"
+        }
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert audit trail to dictionary."""
         return {
