@@ -306,3 +306,47 @@ def test_category_compliance():
         print(f"Record-Keeping Compliance: {rk_result['compliance_percentage']:.1f}%")
 
     print("\n✓ Test passed: Category compliance tracked correctly")
+
+
+def test_compliance_score():
+    """Test compliance_score property calculation"""
+    print("\n" + "="*80)
+    print("TEST 6: Compliance Score Property")
+    print("="*80)
+
+    # Minimal risk system - should score well with basic docs
+    storage = MetadataStorage(system_name="Score Test System")
+    storage.add_model({"model_name": "test", "provider": "Test", "parameters": {"p": 1}})
+    storage.set_risk_assessment({
+        "risk_level": "minimal",
+        "confidence": 0.9,
+        "risk_factors": [],
+        "compliance_requirements": [],
+        "recommendations": []
+    })
+
+    metadata = storage.get_all_metadata()
+    assessor = ConformityAssessor()
+    result = assessor.assess_compliance(metadata)
+
+    score = result.compliance_score
+    print(f"  Compliance Score: {score}%")
+    assert 0 <= score <= 100, f"Score should be 0-100, got {score}"
+    assert isinstance(score, float), "Score should be a float"
+
+    # High-risk system without compliance should score lower
+    storage2 = MetadataStorage(system_name="Low Score System")
+    storage2.set_risk_assessment({
+        "risk_level": "high",
+        "confidence": 0.9,
+        "risk_factors": ["Test"],
+        "compliance_requirements": [],
+        "recommendations": []
+    })
+    metadata2 = storage2.get_all_metadata()
+    result2 = assessor.assess_compliance(metadata2)
+    score2 = result2.compliance_score
+    print(f"  Non-compliant Score: {score2}%")
+    assert score2 < 100, "Non-compliant system should not score 100"
+
+    print("\n✓ Test passed: Compliance score calculated correctly")

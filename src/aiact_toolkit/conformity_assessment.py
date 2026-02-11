@@ -64,6 +64,18 @@ class ConformityAssessmentResult:
     recommendations: List[str]
     critical_gaps: List[str]
 
+    @property
+    def compliance_score(self) -> float:
+        """Calculate weighted compliance score (0-100).
+
+        Fully met requirements count as 1.0, partial as 0.5, N/A excluded.
+        """
+        evaluated = self.requirements_checked - self.requirements_na
+        if evaluated == 0:
+            return 0.0
+        weighted = self.requirements_passed + self.requirements_partial * 0.5
+        return round(weighted / evaluated * 100, 1)
+
 
 class ConformityAssessor:
     """
@@ -595,8 +607,7 @@ def generate_conformity_report(result: ConformityAssessmentResult) -> str:
     lines.append(f"  ~ Teilweise: {result.requirements_partial}")
     lines.append(f"  - Nicht anwendbar: {result.requirements_na}")
 
-    compliance_rate = (result.requirements_passed / result.requirements_checked * 100) if result.requirements_checked > 0 else 0
-    lines.append(f"\nCOMPLIANCE-RATE: {compliance_rate:.1f}%")
+    lines.append(f"\nCOMPLIANCE-SCORE: {result.compliance_score}%")
 
     lines.append("\nKATEGORIE-ERGEBNISSE:")
     for category, data in result.category_results.items():

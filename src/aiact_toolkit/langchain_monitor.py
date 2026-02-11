@@ -11,7 +11,6 @@ It uses LangChain's callback system to intercept and record:
 
 from typing import Any, Dict, List, Optional
 from datetime import datetime
-import json
 import time
 try:
     from langchain_core.callbacks.base import BaseCallbackHandler

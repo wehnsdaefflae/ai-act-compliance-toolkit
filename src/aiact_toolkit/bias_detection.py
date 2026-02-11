@@ -12,7 +12,6 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from collections import Counter, defaultdict
-import json
 
 
 @dataclass

@@ -8,7 +8,6 @@ Basic data tracking and quality monitoring to support EU AI Act Article 10
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 from enum import Enum
-import json
 
 
 class DataType(Enum):

@@ -16,10 +16,8 @@ from .metadata_storage import MetadataStorage
 from .risk_assessment import AIActRiskAssessor
 from .operational_metrics import MetricsAnalyzer
 from .audit_trail import AuditReportGenerator
-from .data_governance import DataGovernanceTracker
 from .model_card import ModelCardGenerator, generate_model_cards_for_all_models
 from .technical_documentation import TechnicalDocumentationGenerator
-from .bias_detection import BiasDetector, BiasReportGenerator
 from .conformity_assessment import ConformityAssessor, generate_conformity_report
 
 # Risk level display symbols (used across CLI commands)
@@ -404,6 +402,14 @@ def cmd_status(args) -> int:
             print(f"  {status} {name}")
 
         print(f"\n  Score: {passed}/{len(checks)} checks passed")
+
+        # Quick conformity score
+        try:
+            assessor = ConformityAssessor()
+            result = assessor.assess_compliance(metadata)
+            print(f"\n  Compliance Score: {result.compliance_score}%")
+        except Exception:
+            pass
 
         # Recommendation
         print(f"\n{'-'*60}")
