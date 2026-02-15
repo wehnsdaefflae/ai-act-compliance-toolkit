@@ -537,50 +537,38 @@ class BiasDetector:
             recommendations.append("System shows good fairness across all analyzed metrics")
             return recommendations
 
-        # Analyze failed metrics
-        representation_issues = [m for m in failed_metrics if m.metric_type == 'representation']
-        outcome_issues = [m for m in failed_metrics if m.metric_type == 'outcome_distribution']
-        demographic_parity_issues = [m for m in failed_metrics if m.metric_type == 'demographic_parity']
-        equal_opp_issues = [m for m in failed_metrics if m.metric_type == 'equal_opportunity']
-        pred_parity_issues = [m for m in failed_metrics if m.metric_type == 'predictive_parity']
+        # Map metric types to their recommendation messages
+        issue_messages = {
+            'representation': (
+                "Class imbalance detected for: {attrs}. "
+                "Consider data augmentation, resampling, or collecting more diverse data."
+            ),
+            'outcome_distribution': (
+                "Outcome disparity detected for: {attrs}. "
+                "Review data collection process for potential bias sources."
+            ),
+            'demographic_parity': (
+                "Demographic parity violation for: {attrs}. "
+                "Model predictions show different positive rates across groups. "
+                "Consider fairness constraints during training or post-processing."
+            ),
+            'equal_opportunity': (
+                "Equal opportunity violation for: {attrs}. "
+                "Model has different true positive rates across groups. "
+                "Consider equalizing opportunity through threshold adjustment or retraining."
+            ),
+            'predictive_parity': (
+                "Predictive parity violation for: {attrs}. "
+                "Model predictions have different precision across groups. "
+                "Review feature engineering and model calibration."
+            ),
+        }
 
-        if representation_issues:
-            attrs = [m.protected_attribute for m in representation_issues]
-            recommendations.append(
-                f"Class imbalance detected for: {', '.join(attrs)}. "
-                f"Consider data augmentation, resampling, or collecting more diverse data."
-            )
-
-        if outcome_issues:
-            attrs = [m.protected_attribute for m in outcome_issues]
-            recommendations.append(
-                f"Outcome disparity detected for: {', '.join(attrs)}. "
-                f"Review data collection process for potential bias sources."
-            )
-
-        if demographic_parity_issues:
-            attrs = [m.protected_attribute for m in demographic_parity_issues]
-            recommendations.append(
-                f"Demographic parity violation for: {', '.join(attrs)}. "
-                f"Model predictions show different positive rates across groups. "
-                f"Consider fairness constraints during training or post-processing."
-            )
-
-        if equal_opp_issues:
-            attrs = [m.protected_attribute for m in equal_opp_issues]
-            recommendations.append(
-                f"Equal opportunity violation for: {', '.join(attrs)}. "
-                f"Model has different true positive rates across groups. "
-                f"Consider equalizing opportunity through threshold adjustment or retraining."
-            )
-
-        if pred_parity_issues:
-            attrs = [m.protected_attribute for m in pred_parity_issues]
-            recommendations.append(
-                f"Predictive parity violation for: {', '.join(attrs)}. "
-                f"Model predictions have different precision across groups. "
-                f"Review feature engineering and model calibration."
-            )
+        for metric_type, message_template in issue_messages.items():
+            issues = [m for m in failed_metrics if m.metric_type == metric_type]
+            if issues:
+                attrs = ', '.join(m.protected_attribute for m in issues)
+                recommendations.append(message_template.format(attrs=attrs))
 
         # Add risk-level specific recommendations
         if risk_level in ['high', 'critical']:

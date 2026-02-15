@@ -182,15 +182,13 @@ class DataGovernanceTracker:
 
     def generate_article10_report(self) -> Dict[str, Any]:
         """Generate compliance report for EU AI Act Article 10."""
-        # Count sources by type
         sources_by_type = {dt.value: 0 for dt in DataType}
         for src in self.sources.values():
-            sources_by_type[src.data_type.value] = sources_by_type.get(src.data_type.value, 0) + 1
+            sources_by_type[src.data_type.value] += 1
 
-        # Count transformations by type
         transforms_by_type = {tt.value: 0 for tt in TransformationType}
         for t in self.transformations:
-            transforms_by_type[t.transformation_type.value] = transforms_by_type.get(t.transformation_type.value, 0) + 1
+            transforms_by_type[t.transformation_type.value] += 1
 
         # Basic compliance checks
         quality_summary = self.get_data_quality_summary()

@@ -8,6 +8,7 @@ Article 12 compliance (automatic logging requirements).
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 from enum import Enum
+from collections import Counter
 import json
 from pathlib import Path
 
@@ -82,15 +83,10 @@ class AuditTrail:
 
     def generate_summary(self) -> Dict[str, Any]:
         """Generate summary statistics of audit trail."""
-        event_counts = {}
-        for event in self.events:
-            event_type = event.event_type
-            event_counts[event_type] = event_counts.get(event_type, 0) + 1
-
         return {
             "system_name": self.system_name,
             "total_events": len(self.events),
-            "event_counts": event_counts,
+            "event_counts": dict(Counter(e.event_type for e in self.events)),
             "audit_trail_created": self.created_at
         }
 

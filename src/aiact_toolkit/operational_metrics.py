@@ -71,13 +71,9 @@ class OperationalMetricsTracker:
         successful_ops = [op for op in self.operations if op.get("success", True)]
         execution_times = [op["execution_time_ms"] for op in self.operations if "execution_time_ms" in op]
 
-        # Token usage statistics
-        total_tokens = 0
-        for op in self.operations:
-            if "token_usage" in op:
-                total_tokens += op["token_usage"].get("total_tokens", 0)
-
-        # Operations by model
+        total_tokens = sum(
+            op.get("token_usage", {}).get("total_tokens", 0) for op in self.operations
+        )
         ops_by_model = defaultdict(int)
         for op in self.operations:
             ops_by_model[op["model_name"]] += 1

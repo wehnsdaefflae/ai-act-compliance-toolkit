@@ -22,7 +22,7 @@ else:
 
 setup(
     name="aiact-toolkit",
-    version="0.3.0",
+    version="0.3.1",
     author="AI Act Compliance Toolkit Contributors",
     description="Automated extraction of compliance metadata for EU AI Act and GDPR",
     long_description=long_description,

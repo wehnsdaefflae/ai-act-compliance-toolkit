@@ -505,23 +505,18 @@ class ConformityAssessor:
     def _generate_category_results(self, requirements: List[ComplianceRequirement]) -> Dict[str, Dict[str, Any]]:
         """Generate per-category compliance summary"""
         category_results = {}
-
         for category in RequirementCategory:
             cat_reqs = [r for r in requirements if r.category == category]
             if not cat_reqs:
                 continue
-
             passed = sum(1 for r in cat_reqs if r.status == ComplianceStatus.COMPLIANT)
-            total = len(cat_reqs)
-
             category_results[category.value] = {
-                "total_requirements": total,
+                "total_requirements": len(cat_reqs),
                 "passed": passed,
-                "compliance_percentage": (passed / total * 100) if total > 0 else 0,
+                "compliance_percentage": passed / len(cat_reqs) * 100,
                 "critical_gaps": [r.requirement_id for r in cat_reqs
                                  if r.mandatory and r.status == ComplianceStatus.NON_COMPLIANT]
             }
-
         return category_results
 
     def _generate_recommendations(self, requirements: List[ComplianceRequirement],
