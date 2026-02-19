@@ -519,12 +519,17 @@ class ConformityAssessor:
             }
         return category_results
 
+    @staticmethod
+    def _is_req_compliant(requirements: List[ComplianceRequirement], req_id: str) -> bool:
+        """Check if a specific requirement is compliant."""
+        return any(r.requirement_id == req_id and r.status == ComplianceStatus.COMPLIANT
+                   for r in requirements)
+
     def _generate_recommendations(self, requirements: List[ComplianceRequirement],
                                  risk_level: str) -> List[str]:
         """Generate actionable recommendations for improvement"""
         recommendations = []
 
-        # Check for missing critical requirements
         failed_mandatory = [r for r in requirements
                            if r.mandatory and r.status == ComplianceStatus.NON_COMPLIANT]
 
@@ -534,30 +539,23 @@ class ConformityAssessor:
                 "Diese müssen vor dem Inverkehrbringen implementiert werden."
             )
 
-        # Data governance recommendations
-        if not any(r.requirement_id == "REQ-002" and r.status == ComplianceStatus.COMPLIANT
-                  for r in requirements):
+        if not self._is_req_compliant(requirements, "REQ-002"):
             recommendations.append(
                 "Aktivieren Sie Data Governance Tracking mit enable_data_governance=True "
                 "beim Monitor-Start für Artikel 10 Compliance."
             )
 
-        # Audit trail recommendations
-        if not any(r.requirement_id == "REQ-007" and r.status == ComplianceStatus.COMPLIANT
-                  for r in requirements):
+        if not self._is_req_compliant(requirements, "REQ-007"):
             recommendations.append(
                 "Aktivieren Sie Audit Trail mit enable_audit_trail=True "
                 "für Artikel 12 Compliance (automatische Protokollierung)."
             )
 
-        # Bias detection for high-risk systems
-        if risk_level == "high":
-            if not any(r.requirement_id == "REQ-014" and r.status == ComplianceStatus.COMPLIANT
-                      for r in requirements):
-                recommendations.append(
-                    "Implementieren Sie Bias Detection für Hochrisiko-Systeme "
-                    "(Artikel 10.2f - Vermeidung diskriminierender Verzerrungen)."
-                )
+        if risk_level == "high" and not self._is_req_compliant(requirements, "REQ-014"):
+            recommendations.append(
+                "Implementieren Sie Bias Detection für Hochrisiko-Systeme "
+                "(Artikel 10.2f - Vermeidung diskriminierender Verzerrungen)."
+            )
 
         # Partial compliance issues
         partial_reqs = [r for r in requirements if r.status == ComplianceStatus.PARTIAL]

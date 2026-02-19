@@ -14,6 +14,11 @@ from datetime import datetime, timezone
 from collections import Counter, defaultdict
 
 
+def _is_positive(value: Any) -> bool:
+    """Check if a value represents a positive outcome (1, True, '1', etc.)."""
+    return value in (1, True, '1', 'true', 'True')
+
+
 @dataclass
 class BiasMetric:
     """Represents a single bias metric measurement"""
@@ -45,9 +50,7 @@ class BiasAnalysisResult:
     metadata: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        result = asdict(self)
-        result['metrics'] = [m.to_dict() if isinstance(m, BiasMetric) else m for m in self.metrics]
-        return result
+        return asdict(self)
 
 
 class BiasDetector:
@@ -321,8 +324,7 @@ class BiasDetector:
         # Calculate positive outcome rate for each group
         positive_rates = {}
         for group, outcomes in groups.items():
-            # Assume positive outcome is 1 or True
-            positive_count = sum(1 for o in outcomes if o in [1, True, '1', 'true', 'True'])
+            positive_count = sum(1 for o in outcomes if _is_positive(o))
             positive_rates[group] = positive_count / len(outcomes) if outcomes else 0
 
         # Calculate max difference in positive rates
@@ -360,8 +362,8 @@ class BiasDetector:
         groups_tpr = defaultdict(lambda: {'tp': 0, 'fn': 0})
 
         for attr_val, pred, truth in zip(attr_values, predictions, ground_truth):
-            if truth in [1, True, '1', 'true', 'True']:  # Positive cases only
-                if pred in [1, True, '1', 'true', 'True']:
+            if _is_positive(truth):
+                if _is_positive(pred):
                     groups_tpr[attr_val]['tp'] += 1
                 else:
                     groups_tpr[attr_val]['fn'] += 1
@@ -409,7 +411,7 @@ class BiasDetector:
 
         for attr_val, pred in zip(attr_values, predictions):
             groups[attr_val]['total'] += 1
-            if pred in [1, True, '1', 'true', 'True']:
+            if _is_positive(pred):
                 groups[attr_val]['positive'] += 1
 
         if len(groups) < 2:
@@ -453,8 +455,8 @@ class BiasDetector:
         groups_ppv = defaultdict(lambda: {'tp': 0, 'fp': 0})
 
         for attr_val, pred, truth in zip(attr_values, predictions, ground_truth):
-            if pred in [1, True, '1', 'true', 'True']:  # Positive predictions only
-                if truth in [1, True, '1', 'true', 'True']:
+            if _is_positive(pred):
+                if _is_positive(truth):
                     groups_ppv[attr_val]['tp'] += 1
                 else:
                     groups_ppv[attr_val]['fp'] += 1

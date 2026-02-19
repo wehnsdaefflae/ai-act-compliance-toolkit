@@ -18,6 +18,3 @@ faiss-cpu>=1.7.4              # For vector store in medical chatbot example
 # Development and Testing
 pytest>=7.4.0
 pytest-cov>=4.1.0
-
-# Documentation
-markdown>=3.4.0

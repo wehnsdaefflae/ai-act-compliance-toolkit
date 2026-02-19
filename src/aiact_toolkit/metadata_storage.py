@@ -191,6 +191,31 @@ class MetadataStorage:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
 
+    def merge_from(self, other: "MetadataStorage"):
+        """Merge metadata from another storage instance (e.g., a different framework monitor).
+
+        Useful when combining metadata from multiple monitors (LangChain + PyTorch, etc.).
+        Models and data sources are deduplicated; other fields are combined.
+        """
+        for model in other.models:
+            self.add_model(model)
+        for component in other.components:
+            self.add_component(component)
+        for source in other.data_sources:
+            self.add_data_source(source)
+        for analysis in other.bias_analyses:
+            self.add_bias_analysis(analysis)
+
+        if other.risk_assessment and not self.risk_assessment:
+            self.set_risk_assessment(other.risk_assessment)
+
+        if other.operational_metrics and not self.operational_metrics:
+            self.set_operational_metrics(other.operational_metrics)
+
+        for key, value in other.metadata.items():
+            if key not in self.metadata:
+                self.metadata[key] = value
+
     def clear(self):
         """Clear all stored metadata."""
         self.models.clear()

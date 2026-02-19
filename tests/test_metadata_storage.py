@@ -176,3 +176,52 @@ class TestMetadataStorage:
         initial_count = len(self.storage.audit_trail.events)
         self.storage.set_risk_assessment({"risk_level": "high"})
         assert len(self.storage.audit_trail.events) == initial_count + 1
+
+    def test_merge_from_models(self):
+        other = MetadataStorage(system_name="other_system")
+        other.add_model({"model_name": "resnet", "provider": "PyTorch", "parameters": {}})
+        other.add_model({"model_name": "bert", "provider": "HuggingFace", "parameters": {}})
+        self.storage.add_model({"model_name": "gpt-4", "provider": "OpenAI", "parameters": {}})
+
+        self.storage.merge_from(other)
+        assert len(self.storage.models) == 3
+
+    def test_merge_from_deduplicates(self):
+        model = {"model_name": "gpt-4", "provider": "OpenAI", "parameters": {}}
+        self.storage.add_model(model)
+
+        other = MetadataStorage(system_name="other")
+        other.add_model(model)
+
+        self.storage.merge_from(other)
+        assert len(self.storage.models) == 1
+
+    def test_merge_from_data_sources(self):
+        other = MetadataStorage(system_name="other")
+        other.add_data_source({"data_source": "train.csv"})
+
+        self.storage.merge_from(other)
+        assert len(self.storage.data_sources) == 1
+
+    def test_merge_from_risk_assessment(self):
+        other = MetadataStorage(system_name="other")
+        other.set_risk_assessment({"risk_level": "high"})
+
+        self.storage.merge_from(other)
+        assert self.storage.risk_assessment["risk_level"] == "high"
+
+    def test_merge_from_keeps_existing_risk(self):
+        self.storage.set_risk_assessment({"risk_level": "minimal"})
+        other = MetadataStorage(system_name="other")
+        other.set_risk_assessment({"risk_level": "high"})
+
+        self.storage.merge_from(other)
+        assert self.storage.risk_assessment["risk_level"] == "minimal"
+
+    def test_merge_from_extra_metadata(self):
+        other = MetadataStorage(system_name="other")
+        other.metadata["framework"] = "pytorch"
+        other.metadata["training_history"] = [{"epoch": 1}]
+
+        self.storage.merge_from(other)
+        assert self.storage.metadata["framework"] == "pytorch"

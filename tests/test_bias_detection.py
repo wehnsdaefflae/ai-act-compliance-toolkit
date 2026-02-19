@@ -15,9 +15,23 @@ from aiact_toolkit.bias_detection import (
     BiasDetector,
     BiasMetric,
     BiasAnalysisResult,
-    BiasReportGenerator
+    BiasReportGenerator,
+    _is_positive,
 )
 from aiact_toolkit.metadata_storage import MetadataStorage
+
+
+def test_is_positive():
+    """Test the _is_positive helper function"""
+    assert _is_positive(1) is True
+    assert _is_positive(True) is True
+    assert _is_positive('1') is True
+    assert _is_positive('true') is True
+    assert _is_positive('True') is True
+    assert _is_positive(0) is False
+    assert _is_positive(False) is False
+    assert _is_positive('0') is False
+    assert _is_positive(None) is False
 
 
 def test_bias_detector_initialization():

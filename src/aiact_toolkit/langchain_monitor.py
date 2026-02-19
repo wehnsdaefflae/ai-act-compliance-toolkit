@@ -380,7 +380,9 @@ class LangChainMonitor:
         return {"message": "Metrics tracking not enabled"}
 
     def save_to_file(self, filepath: str):
-        """Save metadata to JSON file."""
+        """Save metadata (including operational metrics) to JSON file."""
+        if self.metrics_tracker:
+            self.storage.set_operational_metrics(self.metrics_tracker.get_summary_statistics())
         self.storage.save_to_file(filepath)
 
     def __enter__(self):

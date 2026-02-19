@@ -192,10 +192,11 @@ class DataGovernanceTracker:
 
         # Basic compliance checks
         quality_summary = self.get_data_quality_summary()
+        has_personal_data = any(s.personal_data for s in self.sources.values())
         checks_passed = sum([
             len(self.sources) > 0,
             quality_summary["sources_with_quality_metrics"] > 0,
-            any(s.personal_data for s in self.sources.values()) is False or len(self.sources) > 0,
+            not has_personal_data or any(s.sensitive_data is not None for s in self.sources.values()),
         ])
         checks_total = 3
 

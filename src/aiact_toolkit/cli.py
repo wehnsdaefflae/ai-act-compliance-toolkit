@@ -346,8 +346,70 @@ Examples:
         "metadata",
         help="Path to metadata JSON file"
     )
+    status_parser.add_argument(
+        "-o", "--output",
+        help="Export status as JSON to file"
+    )
 
     return parser
+
+
+def _build_status_data(metadata: dict) -> dict:
+    """Build structured compliance status data from metadata.
+
+    Returns a dict that can be printed to console or exported as JSON.
+    """
+    risk = metadata.get("risk_assessment", {})
+    risk_level = risk.get("risk_level", "not assessed")
+    models = metadata.get("models", [])
+    data_sources = metadata.get("data_sources", [])
+    audit = metadata.get("audit_summary", {})
+    audit_events = audit.get("total_events", 0)
+    bias = metadata.get("bias_analyses", [])
+
+    checks = {
+        "risk_assessment": bool(risk.get("risk_level")),
+        "models_documented": len(models) > 0,
+        "data_sources_tracked": len(data_sources) > 0,
+        "audit_trail_active": audit_events > 0,
+        "bias_analysis_done": len(bias) > 0,
+    }
+
+    has_governance = bool(metadata.get("data_governance"))
+    has_ops = bool(metadata.get("operational_metrics"))
+    articles = {
+        "art_9_risk_management": bool(risk.get("risk_level")),
+        "art_10_data_governance": len(data_sources) > 0 and has_governance,
+        "art_11_technical_documentation": len(models) > 0,
+        "art_12_record_keeping": audit_events > 0,
+        "art_13_transparency": len(models) > 0,
+        "art_14_human_oversight": metadata.get("human_oversight_enabled", False),
+        "art_15_accuracy_robustness": has_ops or len(bias) > 0,
+    }
+
+    compliance_score = None
+    try:
+        assessor = ConformityAssessor()
+        result = assessor.assess_compliance(metadata)
+        compliance_score = result.compliance_score
+    except Exception:
+        pass
+
+    return {
+        "system_name": metadata.get("system_name", "Unknown System"),
+        "risk_level": risk_level,
+        "models_count": len(models),
+        "data_sources_count": len(data_sources),
+        "audit_events_count": audit_events,
+        "bias_analyses_count": len(bias),
+        "checks": checks,
+        "checks_passed": sum(checks.values()),
+        "checks_total": len(checks),
+        "compliance_score": compliance_score,
+        "article_coverage": articles,
+        "articles_covered": sum(articles.values()),
+        "articles_total": len(articles),
+    }
 
 
 def cmd_status(args) -> int:
@@ -355,74 +417,63 @@ def cmd_status(args) -> int:
     try:
         generator = DocumentGenerator()
         metadata = generator.load_metadata(args.metadata)
+        status = _build_status_data(metadata)
 
-        system_name = metadata.get("system_name", "Unknown System")
+        # Export as JSON if requested
+        if args.output:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(status, f, indent=2, ensure_ascii=False)
+            print(f"✓ Status exported to: {args.output}")
+            return 0
+
+        system_name = status["system_name"]
+        risk_level = status["risk_level"]
         print(f"\n{'='*60}")
         print(f" EU AI ACT COMPLIANCE STATUS: {system_name}")
         print(f"{'='*60}\n")
 
-        # Risk Level
-        risk = metadata.get("risk_assessment", {})
-        risk_level = risk.get("risk_level", "not assessed")
         print(f"Risk Level:        {RISK_SYMBOLS.get(risk_level, '❓')} {risk_level.upper()}")
-
-        # Models
-        models = metadata.get("models", [])
-        print(f"Models Captured:   {len(models)}")
-
-        # Data Sources
-        data_sources = metadata.get("data_sources", [])
-        print(f"Data Sources:      {len(data_sources)}")
-
-        # Audit Trail
-        audit = metadata.get("audit_summary", {})
-        audit_events = audit.get("total_events", 0)
-        print(f"Audit Events:      {audit_events}")
-
-        # Bias Analysis
-        bias = metadata.get("bias_analyses", [])
-        print(f"Bias Analyses:     {len(bias)}")
+        print(f"Models Captured:   {status['models_count']}")
+        print(f"Data Sources:      {status['data_sources_count']}")
+        print(f"Audit Events:      {status['audit_events_count']}")
+        print(f"Bias Analyses:     {status['bias_analyses_count']}")
 
         # Quick Conformity Check
         print(f"\n{'-'*60}")
         print(" QUICK CONFORMITY CHECK")
         print(f"{'-'*60}")
 
-        checks = [
-            ("Risk Assessment", bool(risk.get("risk_level"))),
-            ("Models Documented", len(models) > 0),
-            ("Data Sources Tracked", len(data_sources) > 0),
-            ("Audit Trail Active", audit_events > 0),
-            ("Bias Analysis Done", len(bias) > 0),
-        ]
+        check_labels = {
+            "risk_assessment": "Risk Assessment",
+            "models_documented": "Models Documented",
+            "data_sources_tracked": "Data Sources Tracked",
+            "audit_trail_active": "Audit Trail Active",
+            "bias_analysis_done": "Bias Analysis Done",
+        }
 
-        passed = sum(1 for _, ok in checks if ok)
-        for name, ok in checks:
-            status = "✓" if ok else "✗"
-            print(f"  {status} {name}")
+        for key, label in check_labels.items():
+            mark = "✓" if status["checks"][key] else "✗"
+            print(f"  {mark} {label}")
 
-        print(f"\n  Score: {passed}/{len(checks)} checks passed")
+        passed = status["checks_passed"]
+        total = status["checks_total"]
+        print(f"\n  Score: {passed}/{total} checks passed")
 
-        # Quick conformity score
-        try:
-            assessor = ConformityAssessor()
-            result = assessor.assess_compliance(metadata)
-            print(f"\n  Compliance Score: {result.compliance_score}%")
-        except Exception:
-            pass
+        if status["compliance_score"] is not None:
+            print(f"\n  Compliance Score: {status['compliance_score']}%")
 
         # Recommendation
         print(f"\n{'-'*60}")
-        if passed == len(checks):
+        if passed == total:
             print(" ✓ Ready for detailed conformity assessment")
         elif passed >= 3:
             print(" ~ Partial compliance - run 'conformity-assessment' for details")
         else:
             print(" ✗ Missing key compliance data - review recommendations below")
 
-        if not risk.get("risk_level"):
+        if not status["checks"]["risk_assessment"]:
             print("   → Run: aiact-toolkit assess-risk metadata.json")
-        if len(bias) == 0 and risk_level == "high":
+        if not status["checks"]["bias_analysis_done"] and risk_level == "high":
             print("   → Run: aiact-toolkit bias-report metadata.json")
 
         # EU AI Act Article Coverage
@@ -430,45 +481,23 @@ def cmd_status(args) -> int:
         print(" EU AI ACT ARTICLE COVERAGE")
         print(f"{'-'*60}")
 
-        has_governance = bool(metadata.get("data_governance"))
-        has_ops = bool(metadata.get("operational_metrics"))
-        articles = [
-            ("Art. 9",  "Risk Management",        bool(risk.get("risk_level"))),
-            ("Art. 10", "Data Governance",         len(data_sources) > 0 and has_governance),
-            ("Art. 11", "Technical Documentation",  len(models) > 0),
-            ("Art. 12", "Record-Keeping",          audit_events > 0),
-            ("Art. 13", "Transparency",            len(models) > 0),
-            ("Art. 14", "Human Oversight",         metadata.get("human_oversight_enabled", False)),
-            ("Art. 15", "Accuracy & Robustness",   has_ops or len(bias) > 0),
+        article_labels = [
+            ("art_9_risk_management", "Art. 9", "Risk Management"),
+            ("art_10_data_governance", "Art. 10", "Data Governance"),
+            ("art_11_technical_documentation", "Art. 11", "Technical Documentation"),
+            ("art_12_record_keeping", "Art. 12", "Record-Keeping"),
+            ("art_13_transparency", "Art. 13", "Transparency"),
+            ("art_14_human_oversight", "Art. 14", "Human Oversight"),
+            ("art_15_accuracy_robustness", "Art. 15", "Accuracy & Robustness"),
         ]
 
-        covered = sum(1 for _, _, ok in articles if ok)
-        for art_num, art_name, ok in articles:
-            mark = "✓" if ok else "○"
+        for key, art_num, art_name in article_labels:
+            mark = "✓" if status["article_coverage"][key] else "○"
             print(f"  {mark} {art_num}  {art_name}")
-        print(f"\n  Coverage: {covered}/{len(articles)} articles addressed ({100*covered//len(articles)}%)")
 
-        # Available Documents Section
-        print(f"\n{'-'*60}")
-        print(" AVAILABLE COMPLIANCE DOCUMENTS")
-        print(f"{'-'*60}")
-
-        documents = [
-            ("Model Card", "Article 13", len(models) > 0),
-            ("Technical Documentation", "Article 11", len(models) > 0),
-            ("Conformity Assessment", "Articles 43-46", len(models) > 0),
-            ("GDPR Data Protection Impact Assessment", "GDPR Art. 35", len(data_sources) > 0),
-            ("Bias & Fairness Report", "Article 10.2f", len(bias) > 0 or len(models) > 0),
-            ("Audit Trail Report", "Article 12", audit_events > 0),
-        ]
-
-        for doc_name, article, ready in documents:
-            status = "✓" if ready else "○"
-            print(f"  {status} {doc_name:<40} [{article}]")
-
-        ready_count = sum(1 for _, _, r in documents if r)
-        print(f"\n  {ready_count}/{len(documents)} documents ready to generate")
-        print(f"  → Run: aiact-toolkit generate {args.metadata} -o compliance_docs/")
+        covered = status["articles_covered"]
+        total_art = status["articles_total"]
+        print(f"\n  Coverage: {covered}/{total_art} articles addressed ({100*covered//total_art}%)")
 
         print(f"{'='*60}\n")
         return 0
@@ -716,12 +745,6 @@ def cmd_analyze_metrics(args) -> int:
                 print(f"  Min Execution Time: {perf.get('min_execution_time_ms', 0):.2f}ms")
                 print(f"  Max Execution Time: {perf.get('max_execution_time_ms', 0):.2f}ms")
                 print()
-
-                # Detailed performance analysis
-                if "operations" in metadata.get("operational_metrics", {}):
-                    analyzer = MetricsAnalyzer()
-                    # Note: We'd need the full operations list for detailed analysis
-                    # For now, just show summary
 
         # Cost analysis
         if args.show_costs or not args.show_performance:

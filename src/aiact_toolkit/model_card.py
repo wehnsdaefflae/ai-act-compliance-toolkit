@@ -210,13 +210,11 @@ class ModelCardGenerator:
         model_name = model_info.get("model_name") or model_info.get("name", "Unknown Model")
 
         # Determine framework
-        framework = None
-        if metadata.get("framework") == "langchain":
-            framework = "LangChain"
-        elif metadata.get("framework") == "pytorch":
-            framework = "PyTorch"
-        elif metadata.get("framework") == "tensorflow":
-            framework = "TensorFlow/Keras"
+        _FRAMEWORK_NAMES = {
+            "langchain": "LangChain", "pytorch": "PyTorch",
+            "tensorflow": "TensorFlow/Keras",
+        }
+        framework = _FRAMEWORK_NAMES.get(metadata.get("framework"))
 
         # Extract architecture info
         architecture = None

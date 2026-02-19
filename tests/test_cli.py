@@ -12,7 +12,7 @@ from io import StringIO
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from aiact_toolkit.cli import create_parser, cmd_validate, cmd_list_templates
+from aiact_toolkit.cli import create_parser, cmd_validate, cmd_list_templates, cmd_status, _build_status_data
 
 
 class TestCLI:
@@ -167,6 +167,43 @@ class TestCLI:
 
             assert exit_code == 0
             assert "Metadata summary" in output
+
+        finally:
+            sys.stdout = old_stdout
+
+    def test_build_status_data(self):
+        """Test _build_status_data returns structured dict."""
+        status = _build_status_data(self.sample_metadata)
+
+        assert status["system_name"] == "test_system"
+        assert status["models_count"] == 1
+        assert status["data_sources_count"] == 1
+        assert status["checks"]["models_documented"] is True
+        assert status["checks"]["data_sources_tracked"] is True
+        assert status["checks_passed"] >= 2
+        assert status["articles_total"] == 7
+
+    def test_cmd_status_json_output(self):
+        """Test status command with JSON output."""
+        output_file = Path(self.temp_dir) / "status.json"
+
+        class Args:
+            metadata = str(self.metadata_file)
+            output = str(output_file)
+
+        old_stdout = sys.stdout
+        sys.stdout = StringIO()
+
+        try:
+            exit_code = cmd_status(Args())
+            assert exit_code == 0
+            assert output_file.exists()
+
+            with open(output_file) as f:
+                data = json.load(f)
+            assert data["system_name"] == "test_system"
+            assert "checks" in data
+            assert "article_coverage" in data
 
         finally:
             sys.stdout = old_stdout
