@@ -237,10 +237,10 @@ def test_conformity_report_generation():
     print("\n" + report)
 
     # Verify report contains key sections
-    assert "KONFORMITÄTSBEWERTUNG" in report, "Report should have title"
+    assert "CONFORMITY ASSESSMENT" in report, "Report should have title"
     assert result.system_name in report, "Report should contain system name"
     assert result.risk_level in report.lower(), "Report should contain risk level"
-    assert "ÜBERBLICK" in report, "Report should have overview section"
+    assert "OVERVIEW" in report, "Report should have overview section"
 
     print("\n✓ Test passed: Conformity report generated successfully")
 

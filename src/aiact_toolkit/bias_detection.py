@@ -66,18 +66,30 @@ class BiasDetector:
     """
 
     def __init__(self, thresholds: Optional[Dict[str, float]] = None):
-        """
-        Initialize bias detector with configurable thresholds.
-
-        Args:
-            thresholds: Dictionary mapping metric names to threshold values
-        """
         self.thresholds = thresholds or {
-            'demographic_parity': 0.1,  # Max difference of 10%
+            'demographic_parity': 0.1,
             'equal_opportunity': 0.1,
-            'disparate_impact': 0.8,  # Minimum ratio of 0.8 (80% rule)
+            'disparate_impact': 0.8,
             'predictive_parity': 0.1,
         }
+
+    @staticmethod
+    def _empty_result(
+        name: str, analysis_type: str, timestamp: str,
+        recommendation: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> BiasAnalysisResult:
+        """Create an empty analysis result with a single recommendation."""
+        return BiasAnalysisResult(
+            analysis_id=f"bias_analysis_{timestamp}",
+            dataset_name=name,
+            analysis_type=analysis_type,
+            timestamp=timestamp,
+            metrics=[],
+            overall_fairness_score=0.0,
+            risk_level='unknown',
+            recommendations=[recommendation],
+            metadata=metadata
+        )
 
     def analyze_dataset(
         self,
@@ -103,18 +115,10 @@ class BiasDetector:
         metrics = []
         timestamp = datetime.now(timezone.utc).isoformat()
 
-        # Check data availability
         if not data:
-            return BiasAnalysisResult(
-                analysis_id=f"bias_analysis_{timestamp}",
-                dataset_name=dataset_name,
-                analysis_type='dataset',
-                timestamp=timestamp,
-                metrics=[],
-                overall_fairness_score=0.0,
-                risk_level='unknown',
-                recommendations=['No data available for bias analysis'],
-                metadata=metadata
+            return self._empty_result(
+                dataset_name, 'dataset', timestamp,
+                'No data available for bias analysis', metadata
             )
 
         # Analyze representation for each protected attribute
@@ -182,31 +186,16 @@ class BiasDetector:
         metrics = []
         timestamp = datetime.now(timezone.utc).isoformat()
 
-        # Validate inputs
         if not predictions or not ground_truth:
-            return BiasAnalysisResult(
-                analysis_id=f"bias_analysis_{timestamp}",
-                dataset_name=model_name,
-                analysis_type='model_predictions',
-                timestamp=timestamp,
-                metrics=[],
-                overall_fairness_score=0.0,
-                risk_level='unknown',
-                recommendations=['Insufficient prediction data for bias analysis'],
-                metadata=metadata
+            return self._empty_result(
+                model_name, 'model_predictions', timestamp,
+                'Insufficient prediction data for bias analysis', metadata
             )
 
         if len(predictions) != len(ground_truth):
-            return BiasAnalysisResult(
-                analysis_id=f"bias_analysis_{timestamp}",
-                dataset_name=model_name,
-                analysis_type='model_predictions',
-                timestamp=timestamp,
-                metrics=[],
-                overall_fairness_score=0.0,
-                risk_level='unknown',
-                recommendations=['Prediction and ground truth length mismatch'],
-                metadata=metadata
+            return self._empty_result(
+                model_name, 'model_predictions', timestamp,
+                'Prediction and ground truth length mismatch', metadata
             )
 
         # Analyze fairness for each protected attribute

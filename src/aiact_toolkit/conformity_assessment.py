@@ -535,34 +535,33 @@ class ConformityAssessor:
 
         if failed_mandatory:
             recommendations.append(
-                f"KRITISCH: {len(failed_mandatory)} verpflichtende Anforderungen nicht erfüllt. "
-                "Diese müssen vor dem Inverkehrbringen implementiert werden."
+                f"CRITICAL: {len(failed_mandatory)} mandatory requirement(s) not met. "
+                "These must be implemented before placing the system on the market."
             )
 
         if not self._is_req_compliant(requirements, "REQ-002"):
             recommendations.append(
-                "Aktivieren Sie Data Governance Tracking mit enable_data_governance=True "
-                "beim Monitor-Start für Artikel 10 Compliance."
+                "Enable data governance tracking with enable_data_governance=True "
+                "when starting the monitor for Article 10 compliance."
             )
 
         if not self._is_req_compliant(requirements, "REQ-007"):
             recommendations.append(
-                "Aktivieren Sie Audit Trail mit enable_audit_trail=True "
-                "für Artikel 12 Compliance (automatische Protokollierung)."
+                "Enable audit trail with enable_audit_trail=True "
+                "for Article 12 compliance (automatic logging)."
             )
 
         if risk_level == "high" and not self._is_req_compliant(requirements, "REQ-014"):
             recommendations.append(
-                "Implementieren Sie Bias Detection für Hochrisiko-Systeme "
-                "(Artikel 10.2f - Vermeidung diskriminierender Verzerrungen)."
+                "Implement bias detection for high-risk systems "
+                "(Article 10.2f - prevention of discriminatory biases)."
             )
 
-        # Partial compliance issues
         partial_reqs = [r for r in requirements if r.status == ComplianceStatus.PARTIAL]
         if partial_reqs:
             recommendations.append(
-                f"{len(partial_reqs)} Anforderungen sind teilweise erfüllt. "
-                "Vervollständigen Sie die Dokumentation für volle Compliance."
+                f"{len(partial_reqs)} requirement(s) partially met. "
+                "Complete the documentation for full compliance."
             )
 
         return recommendations
@@ -583,42 +582,40 @@ class ConformityAssessor:
 
 def generate_conformity_report(result: ConformityAssessmentResult) -> str:
     """Generate a text summary of conformity assessment results"""
-    lines = []
-    lines.append("=" * 80)
-    lines.append("KONFORMITÄTSBEWERTUNG - EU AI ACT")
-    lines.append("=" * 80)
-    lines.append(f"System: {result.system_name}")
-    lines.append(f"Bewertungsdatum: {result.assessment_date}")
-    lines.append(f"Risikolevel: {result.risk_level.upper()}")
-    lines.append(f"Gesamtstatus: {result.overall_status.value.upper()}")
-    lines.append("-" * 80)
+    lines = [
+        "=" * 80,
+        "CONFORMITY ASSESSMENT - EU AI ACT",
+        "=" * 80,
+        f"System: {result.system_name}",
+        f"Assessment Date: {result.assessment_date}",
+        f"Risk Level: {result.risk_level.upper()}",
+        f"Overall Status: {result.overall_status.value.upper()}",
+        "-" * 80,
+        f"\nOVERVIEW:",
+        f"  Requirements Checked: {result.requirements_checked}",
+        f"  ✓ Passed: {result.requirements_passed}",
+        f"  ✗ Failed: {result.requirements_failed}",
+        f"  ~ Partial: {result.requirements_partial}",
+        f"  - Not Applicable: {result.requirements_na}",
+        f"\nCOMPLIANCE SCORE: {result.compliance_score}%",
+        "\nCATEGORY RESULTS:",
+    ]
 
-    lines.append(f"\nÜBERBLICK:")
-    lines.append(f"  Geprüfte Anforderungen: {result.requirements_checked}")
-    lines.append(f"  ✓ Erfüllt: {result.requirements_passed}")
-    lines.append(f"  ✗ Nicht erfüllt: {result.requirements_failed}")
-    lines.append(f"  ~ Teilweise: {result.requirements_partial}")
-    lines.append(f"  - Nicht anwendbar: {result.requirements_na}")
-
-    lines.append(f"\nCOMPLIANCE-SCORE: {result.compliance_score}%")
-
-    lines.append("\nKATEGORIE-ERGEBNISSE:")
     for category, data in result.category_results.items():
         lines.append(f"  {category}: {data['passed']}/{data['total_requirements']} "
                     f"({data['compliance_percentage']:.0f}%)")
         if data['critical_gaps']:
-            lines.append(f"    Kritische Lücken: {', '.join(data['critical_gaps'])}")
+            lines.append(f"    Critical Gaps: {', '.join(data['critical_gaps'])}")
 
     if result.critical_gaps:
-        lines.append("\nKRITISCHE LÜCKEN:")
+        lines.append("\nCRITICAL GAPS:")
         for gap in result.critical_gaps:
             lines.append(f"  ✗ {gap}")
 
     if result.recommendations:
-        lines.append("\nEMPFEHLUNGEN:")
+        lines.append("\nRECOMMENDATIONS:")
         for i, rec in enumerate(result.recommendations, 1):
             lines.append(f"  {i}. {rec}")
 
     lines.append("\n" + "=" * 80)
-
     return "\n".join(lines)

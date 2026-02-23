@@ -143,8 +143,10 @@ class ModelCardGenerator:
     and structures it into a standardized model card format.
     """
 
+    DEFAULT_DEVELOPERS = "Development Team"
+
     def __init__(self):
-        self.default_developers = "Development Team"
+        pass
 
     def generate_from_metadata(
         self,
@@ -232,7 +234,7 @@ class ModelCardGenerator:
             description=metadata.get("description", f"AI model for {system_name}"),
             model_type=model_info.get("type", "machine_learning_model"),
             architecture=architecture,
-            developers=metadata.get("developers", self.default_developers),
+            developers=metadata.get("developers", self.DEFAULT_DEVELOPERS),
             organization=metadata.get("organization"),
             license=metadata.get("license"),
             model_date=metadata.get("created_at", datetime.now().isoformat()),

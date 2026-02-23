@@ -31,6 +31,25 @@ RISK_SYMBOLS = {
 }
 
 
+def _cli_command(func):
+    """Wrap a CLI command with standard error handling."""
+    def wrapper(args):
+        try:
+            return func(args)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
+
+
+def _load_metadata(path, templates_dir=None):
+    """Load metadata from a JSON file path. Returns (generator, metadata)."""
+    generator = DocumentGenerator(templates_dir=templates_dir)
+    return generator, generator.load_metadata(path)
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser for CLI."""
     parser = argparse.ArgumentParser(
@@ -412,854 +431,602 @@ def _build_status_data(metadata: dict) -> dict:
     }
 
 
+@_cli_command
 def cmd_status(args) -> int:
     """Handle status command - quick compliance overview."""
-    try:
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
-        status = _build_status_data(metadata)
+    _, metadata = _load_metadata(args.metadata)
+    status = _build_status_data(metadata)
 
-        # Export as JSON if requested
-        if args.output:
-            with open(args.output, 'w', encoding='utf-8') as f:
-                json.dump(status, f, indent=2, ensure_ascii=False)
-            print(f"✓ Status exported to: {args.output}")
-            return 0
-
-        system_name = status["system_name"]
-        risk_level = status["risk_level"]
-        print(f"\n{'='*60}")
-        print(f" EU AI ACT COMPLIANCE STATUS: {system_name}")
-        print(f"{'='*60}\n")
-
-        print(f"Risk Level:        {RISK_SYMBOLS.get(risk_level, '❓')} {risk_level.upper()}")
-        print(f"Models Captured:   {status['models_count']}")
-        print(f"Data Sources:      {status['data_sources_count']}")
-        print(f"Audit Events:      {status['audit_events_count']}")
-        print(f"Bias Analyses:     {status['bias_analyses_count']}")
-
-        # Quick Conformity Check
-        print(f"\n{'-'*60}")
-        print(" QUICK CONFORMITY CHECK")
-        print(f"{'-'*60}")
-
-        check_labels = {
-            "risk_assessment": "Risk Assessment",
-            "models_documented": "Models Documented",
-            "data_sources_tracked": "Data Sources Tracked",
-            "audit_trail_active": "Audit Trail Active",
-            "bias_analysis_done": "Bias Analysis Done",
-        }
-
-        for key, label in check_labels.items():
-            mark = "✓" if status["checks"][key] else "✗"
-            print(f"  {mark} {label}")
-
-        passed = status["checks_passed"]
-        total = status["checks_total"]
-        print(f"\n  Score: {passed}/{total} checks passed")
-
-        if status["compliance_score"] is not None:
-            print(f"\n  Compliance Score: {status['compliance_score']}%")
-
-        # Recommendation
-        print(f"\n{'-'*60}")
-        if passed == total:
-            print(" ✓ Ready for detailed conformity assessment")
-        elif passed >= 3:
-            print(" ~ Partial compliance - run 'conformity-assessment' for details")
-        else:
-            print(" ✗ Missing key compliance data - review recommendations below")
-
-        if not status["checks"]["risk_assessment"]:
-            print("   → Run: aiact-toolkit assess-risk metadata.json")
-        if not status["checks"]["bias_analysis_done"] and risk_level == "high":
-            print("   → Run: aiact-toolkit bias-report metadata.json")
-
-        # EU AI Act Article Coverage
-        print(f"\n{'-'*60}")
-        print(" EU AI ACT ARTICLE COVERAGE")
-        print(f"{'-'*60}")
-
-        article_labels = [
-            ("art_9_risk_management", "Art. 9", "Risk Management"),
-            ("art_10_data_governance", "Art. 10", "Data Governance"),
-            ("art_11_technical_documentation", "Art. 11", "Technical Documentation"),
-            ("art_12_record_keeping", "Art. 12", "Record-Keeping"),
-            ("art_13_transparency", "Art. 13", "Transparency"),
-            ("art_14_human_oversight", "Art. 14", "Human Oversight"),
-            ("art_15_accuracy_robustness", "Art. 15", "Accuracy & Robustness"),
-        ]
-
-        for key, art_num, art_name in article_labels:
-            mark = "✓" if status["article_coverage"][key] else "○"
-            print(f"  {mark} {art_num}  {art_name}")
-
-        covered = status["articles_covered"]
-        total_art = status["articles_total"]
-        print(f"\n  Coverage: {covered}/{total_art} articles addressed ({100*covered//total_art}%)")
-
-        print(f"{'='*60}\n")
+    # Export as JSON if requested
+    if args.output:
+        with open(args.output, 'w', encoding='utf-8') as f:
+            json.dump(status, f, indent=2, ensure_ascii=False)
+        print(f"✓ Status exported to: {args.output}")
         return 0
 
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    system_name = status["system_name"]
+    risk_level = status["risk_level"]
+    print(f"\n{'='*60}")
+    print(f" EU AI ACT COMPLIANCE STATUS: {system_name}")
+    print(f"{'='*60}\n")
+
+    print(f"Risk Level:        {RISK_SYMBOLS.get(risk_level, '❓')} {risk_level.upper()}")
+    print(f"Models Captured:   {status['models_count']}")
+    print(f"Data Sources:      {status['data_sources_count']}")
+    print(f"Audit Events:      {status['audit_events_count']}")
+    print(f"Bias Analyses:     {status['bias_analyses_count']}")
+
+    # Quick Conformity Check
+    print(f"\n{'-'*60}")
+    print(" QUICK CONFORMITY CHECK")
+    print(f"{'-'*60}")
+
+    check_labels = {
+        "risk_assessment": "Risk Assessment",
+        "models_documented": "Models Documented",
+        "data_sources_tracked": "Data Sources Tracked",
+        "audit_trail_active": "Audit Trail Active",
+        "bias_analysis_done": "Bias Analysis Done",
+    }
+
+    for key, label in check_labels.items():
+        mark = "✓" if status["checks"][key] else "✗"
+        print(f"  {mark} {label}")
+
+    passed = status["checks_passed"]
+    total = status["checks_total"]
+    print(f"\n  Score: {passed}/{total} checks passed")
+
+    if status["compliance_score"] is not None:
+        print(f"\n  Compliance Score: {status['compliance_score']}%")
+
+    # Recommendation
+    print(f"\n{'-'*60}")
+    if passed == total:
+        print(" ✓ Ready for detailed conformity assessment")
+    elif passed >= 3:
+        print(" ~ Partial compliance - run 'conformity-assessment' for details")
+    else:
+        print(" ✗ Missing key compliance data - review recommendations below")
+
+    if not status["checks"]["risk_assessment"]:
+        print("   → Run: aiact-toolkit assess-risk metadata.json")
+    if not status["checks"]["bias_analysis_done"] and risk_level == "high":
+        print("   → Run: aiact-toolkit bias-report metadata.json")
+
+    # EU AI Act Article Coverage
+    print(f"\n{'-'*60}")
+    print(" EU AI ACT ARTICLE COVERAGE")
+    print(f"{'-'*60}")
+
+    article_labels = [
+        ("art_9_risk_management", "Art. 9", "Risk Management"),
+        ("art_10_data_governance", "Art. 10", "Data Governance"),
+        ("art_11_technical_documentation", "Art. 11", "Technical Documentation"),
+        ("art_12_record_keeping", "Art. 12", "Record-Keeping"),
+        ("art_13_transparency", "Art. 13", "Transparency"),
+        ("art_14_human_oversight", "Art. 14", "Human Oversight"),
+        ("art_15_accuracy_robustness", "Art. 15", "Accuracy & Robustness"),
+    ]
+
+    for key, art_num, art_name in article_labels:
+        mark = "✓" if status["article_coverage"][key] else "○"
+        print(f"  {mark} {art_num}  {art_name}")
+
+    covered = status["articles_covered"]
+    total_art = status["articles_total"]
+    print(f"\n  Coverage: {covered}/{total_art} articles addressed ({100*covered//total_art}%)")
+
+    print(f"{'='*60}\n")
+    return 0
 
 
+@_cli_command
 def cmd_generate(args) -> int:
     """Handle generate command."""
-    try:
-        # Initialize generator
-        generator = DocumentGenerator(templates_dir=args.templates_dir)
+    generator, metadata = _load_metadata(args.metadata, templates_dir=args.templates_dir)
 
-        # Load metadata
-        print(f"Loading metadata from: {args.metadata}")
-        metadata = generator.load_metadata(args.metadata)
-        print(f"✓ Loaded metadata for system: {metadata.get('system_name', 'unknown')}")
+    print(f"Loading metadata from: {args.metadata}")
+    print(f"✓ Loaded metadata for system: {metadata.get('system_name', 'unknown')}")
 
-        # Validate metadata
-        validation = generator.validate_metadata(metadata)
-        if not validation["valid"]:
-            print("\n⚠ Warning: Metadata validation failed")
-            print("Missing fields:", ", ".join(validation["missing_fields"]))
-            print("Continue anyway? [y/N]: ", end="")
-            if input().lower() != 'y':
-                return 1
+    validation = generator.validate_metadata(metadata)
+    if not validation["valid"]:
+        print("\n⚠ Warning: Metadata validation failed")
+        print("Missing fields:", ", ".join(validation["missing_fields"]))
+        print("Continue anyway? [y/N]: ", end="")
+        if input().lower() != 'y':
+            return 1
 
-        if validation["warnings"]:
-            print("\n⚠ Metadata warnings:")
-            for warning in validation["warnings"]:
-                print(f"  - {warning}")
+    if validation["warnings"]:
+        print("\n⚠ Metadata warnings:")
+        for warning in validation["warnings"]:
+            print(f"  - {warning}")
 
-        # Generate documents
-        if args.template:
-            # Single template
-            output_path = args.output or args.template.replace('.jinja2', '')
-            print(f"\nGenerating document from template: {args.template}")
-            generator.generate_document(
-                template_name=args.template,
-                metadata=metadata,
-                output_path=output_path
-            )
-            print(f"✓ Generated: {output_path}")
-        else:
-            # All templates
-            output_dir = args.output or "compliance_docs"
-            print(f"\nGenerating all documents to: {output_dir}")
-            generated = generator.generate_all_documents(metadata, output_dir)
-            print(f"✓ Generated {len(generated)} document(s):")
-            for filepath in generated:
-                print(f"  - {filepath}")
+    if args.template:
+        output_path = args.output or args.template.replace('.jinja2', '')
+        print(f"\nGenerating document from template: {args.template}")
+        generator.generate_document(
+            template_name=args.template, metadata=metadata, output_path=output_path
+        )
+        print(f"✓ Generated: {output_path}")
+    else:
+        output_dir = args.output or "compliance_docs"
+        print(f"\nGenerating all documents to: {output_dir}")
+        generated = generator.generate_all_documents(metadata, output_dir)
+        print(f"✓ Generated {len(generated)} document(s):")
+        for filepath in generated:
+            print(f"  - {filepath}")
 
-        print("\n✓ Document generation complete!")
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    print("\n✓ Document generation complete!")
+    return 0
 
 
+@_cli_command
 def cmd_list_templates(args) -> int:
     """Handle list-templates command."""
-    try:
-        generator = DocumentGenerator(templates_dir=args.templates_dir)
-        templates = generator.list_templates()
+    generator = DocumentGenerator(templates_dir=args.templates_dir)
+    templates = generator.list_templates()
 
-        print(f"Available templates in {generator.templates_dir}:")
-        print()
-        for template in templates:
-            # Derive document type from filename
-            doc_type = template.replace('.md.jinja2', '').replace('_', ' ').title()
-            print(f"  - {template}")
-            print(f"    → {doc_type}")
+    print(f"Available templates in {generator.templates_dir}:")
+    print()
+    for template in templates:
+        doc_type = template.replace('.md.jinja2', '').replace('_', ' ').title()
+        print(f"  - {template}")
+        print(f"    → {doc_type}")
 
-        print(f"\nTotal: {len(templates)} template(s)")
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    print(f"\nTotal: {len(templates)} template(s)")
+    return 0
 
 
+@_cli_command
 def cmd_validate(args) -> int:
     """Handle validate command."""
-    try:
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
+    generator, metadata = _load_metadata(args.metadata)
 
-        print(f"Validating metadata from: {args.metadata}")
-        print(f"System: {metadata.get('system_name', 'unknown')}")
-        print()
+    print(f"Validating metadata from: {args.metadata}")
+    print(f"System: {metadata.get('system_name', 'unknown')}\n")
 
-        validation = generator.validate_metadata(metadata)
+    validation = generator.validate_metadata(metadata)
 
-        # Print validation status
-        if validation["valid"]:
-            print("✓ Metadata validation passed")
-        else:
-            print("✗ Metadata validation failed")
+    print("✓ Metadata validation passed" if validation["valid"] else "✗ Metadata validation failed")
 
-        # Print missing fields
-        if validation["missing_fields"]:
-            print("\nMissing required fields:")
-            for field in validation["missing_fields"]:
-                print(f"  ✗ {field}")
+    if validation["missing_fields"]:
+        print("\nMissing required fields:")
+        for field_name in validation["missing_fields"]:
+            print(f"  ✗ {field_name}")
 
-        # Print warnings
-        if validation["warnings"]:
-            print("\n⚠ Warnings:")
-            for warning in validation["warnings"]:
-                print(f"  - {warning}")
+    if validation["warnings"]:
+        print("\n⚠ Warnings:")
+        for warning in validation["warnings"]:
+            print(f"  - {warning}")
 
-        # Print recommendations
-        if validation["recommendations"]:
-            print("\n💡 Recommendations:")
-            for rec in validation["recommendations"]:
-                print(f"  - {rec}")
+    if validation["recommendations"]:
+        print("\nRecommendations:")
+        for rec in validation["recommendations"]:
+            print(f"  - {rec}")
 
-        # Verbose output
-        if args.verbose:
-            print("\nMetadata summary:")
-            if "models" in metadata:
-                print(f"  Models: {len(metadata['models'])}")
-            if "data_sources" in metadata:
-                print(f"  Data sources: {len(metadata['data_sources'])}")
-            if "components" in metadata:
-                print(f"  Components: {len(metadata['components'])}")
+    if args.verbose:
+        print("\nMetadata summary:")
+        for key in ("models", "data_sources", "components"):
+            if key in metadata:
+                print(f"  {key.replace('_', ' ').title()}: {len(metadata[key])}")
 
-        return 0 if validation["valid"] else 1
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    return 0 if validation["valid"] else 1
 
 
+@_cli_command
 def cmd_assess_risk(args) -> int:
     """Handle assess-risk command."""
-    try:
-        # Load metadata
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
+    generator, metadata = _load_metadata(args.metadata)
 
-        print(f"Assessing risk for system: {metadata.get('system_name', 'unknown')}")
-        if args.use_case:
-            print(f"Use case: {args.use_case}")
-        if args.domain:
-            print(f"Domain: {args.domain}")
-        print()
+    print(f"Assessing risk for system: {metadata.get('system_name', 'unknown')}")
+    if args.use_case:
+        print(f"Use case: {args.use_case}")
+    if args.domain:
+        print(f"Domain: {args.domain}")
+    print()
 
-        # Perform risk assessment
-        assessor = AIActRiskAssessor()
-        assessment = assessor.assess_risk(
-            metadata=metadata,
-            use_case=args.use_case,
-            application_domain=args.domain
+    assessor = AIActRiskAssessor()
+    assessment = assessor.assess_risk(
+        metadata=metadata, use_case=args.use_case, application_domain=args.domain
+    )
+
+    symbol = RISK_SYMBOLS.get(assessment["risk_level"], "❓")
+    print(f"{symbol} Risk Level: {assessment['risk_level'].upper()}")
+    print(f"Confidence: {assessment['confidence'] * 100}%\n")
+
+    print("Risk Factors:")
+    for factor in assessment["risk_factors"]:
+        print(f"  - {factor}")
+
+    print("\nCompliance Requirements:")
+    for i, req in enumerate(assessment["compliance_requirements"], 1):
+        print(f"  {i}. {req}")
+
+    print("\nRecommendations:")
+    for i, rec in enumerate(assessment["recommendations"], 1):
+        print(f"  {i}. {rec}")
+    print()
+
+    if args.save_to_metadata:
+        storage = MetadataStorage()
+        storage.load_from_file(args.metadata)
+        storage.set_risk_assessment(assessment)
+        storage.save_to_file(args.metadata)
+        print(f"✓ Risk assessment saved to metadata file: {args.metadata}\n")
+
+    if args.output:
+        report_data = assessor.generate_risk_report(metadata, assessment)
+        generator.generate_document(
+            template_name="risk_assessment_report.md.jinja2",
+            metadata=report_data, output_path=args.output
         )
+        print(f"✓ Risk assessment report generated: {args.output}")
 
-        # Display results
-        risk_level = assessment["risk_level"].upper()
-        confidence = assessment["confidence"] * 100
-
-        symbol = RISK_SYMBOLS.get(assessment["risk_level"], "❓")
-        print(f"{symbol} Risk Level: {risk_level}")
-        print(f"Confidence: {confidence}%")
-        print()
-
-        print("Risk Factors:")
-        for factor in assessment["risk_factors"]:
-            print(f"  • {factor}")
-        print()
-
-        print("Compliance Requirements:")
-        for i, req in enumerate(assessment["compliance_requirements"], 1):
-            print(f"  {i}. {req}")
-        print()
-
-        print("Recommendations:")
-        for i, rec in enumerate(assessment["recommendations"], 1):
-            print(f"  {i}. {rec}")
-        print()
-
-        # Save to metadata if requested
-        if args.save_to_metadata:
-            storage = MetadataStorage()
-            storage.load_from_file(args.metadata)
-            storage.set_risk_assessment(assessment)
-            storage.save_to_file(args.metadata)
-            print(f"✓ Risk assessment saved to metadata file: {args.metadata}")
-            print()
-
-        # Generate report if output specified
-        if args.output:
-            report_data = assessor.generate_risk_report(metadata, assessment)
-            generator.generate_document(
-                template_name="risk_assessment_report.md.jinja2",
-                metadata=report_data,
-                output_path=args.output
-            )
-            print(f"✓ Risk assessment report generated: {args.output}")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    return 0
 
 
+@_cli_command
 def cmd_analyze_metrics(args) -> int:
     """Handle analyze-metrics command."""
-    try:
-        # Load metadata
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
+    generator, metadata = _load_metadata(args.metadata)
 
-        # Check if operational metrics exist
-        if "operational_metrics" not in metadata or not metadata["operational_metrics"]:
-            print("⚠ No operational metrics found in metadata file.", file=sys.stderr)
-            print("Make sure to enable metrics tracking when running your AI system:", file=sys.stderr)
-            print("  monitor = LangChainMonitor(system_name='...', enable_metrics=True)", file=sys.stderr)
-            return 1
-
-        metrics = metadata["operational_metrics"]
-
-        print(f"Analyzing operational metrics for: {metadata.get('system_name', 'unknown')}")
-        print()
-
-        # Display summary
-        if "operations" in metrics:
-            ops = metrics["operations"]
-            print("📊 Operations Summary:")
-            print(f"  Total Operations: {ops.get('total', 0)}")
-            print(f"  Successful: {ops.get('successful', 0)}")
-            print(f"  Failed: {ops.get('failed', 0)}")
-            print(f"  Error Rate: {ops.get('error_rate_percent', 0)}%")
-            print()
-
-        # Performance analysis
-        if args.show_performance or not args.show_costs:
-            if "performance" in metrics:
-                perf = metrics["performance"]
-                print("⚡ Performance Metrics:")
-                print(f"  Average Execution Time: {perf.get('avg_execution_time_ms', 0):.2f}ms")
-                print(f"  Min Execution Time: {perf.get('min_execution_time_ms', 0):.2f}ms")
-                print(f"  Max Execution Time: {perf.get('max_execution_time_ms', 0):.2f}ms")
-                print()
-
-        # Cost analysis
-        if args.show_costs or not args.show_performance:
-            if "costs" in metrics:
-                costs = metrics["costs"]
-                print("💰 Cost Analysis:")
-                print(f"  Total Estimated Cost: ${costs.get('total_estimated_usd', 0):.6f}")
-
-                if "by_model" in costs and costs["by_model"]:
-                    print("  Cost by Model:")
-                    for model, cost in costs["by_model"].items():
-                        print(f"    - {model}: ${cost:.6f}")
-                print()
-
-        # Token usage
-        if "token_usage" in metrics:
-            tokens = metrics["token_usage"]
-            print("🔤 Token Usage:")
-            print(f"  Input Tokens: {tokens.get('total_input_tokens', 0):,}")
-            print(f"  Output Tokens: {tokens.get('total_output_tokens', 0):,}")
-            print(f"  Total Tokens: {tokens.get('total_tokens', 0):,}")
-            print()
-
-        # Identify issues using MetricsAnalyzer
-        analysis = MetricsAnalyzer.analyze_from_dict(metrics)
-        issues = analysis.get("issues_detected", [])
-
-        if issues:
-            print("🔍 Analysis & Recommendations:")
-            for issue in issues:
-                if "WARNING" in issue or "High" in issue or "error rate" in issue:
-                    print(f"  ⚠️  {issue}")
-                elif "NOTICE" in issue or "Elevated" in issue:
-                    print(f"  ℹ️  {issue}")
-                else:
-                    print(f"  ✓  {issue}")
-            print()
-
-        # Errors summary
-        if "errors" in metrics and metrics["errors"]:
-            error_count = len(metrics["errors"])
-            print(f"❌ Errors Recorded: {error_count}")
-            if error_count > 0:
-                print("  Recent errors:")
-                for error in metrics["errors"][:3]:
-                    print(f"    - {error.get('error_message', 'Unknown error')}")
-                if error_count > 3:
-                    print(f"    ... and {error_count - 3} more")
-            print()
-
-        # Generate report if requested
-        if args.output:
-            generator.generate_document(
-                template_name="operational_report.md.jinja2",
-                metadata=metadata,
-                output_path=args.output
-            )
-            print(f"✓ Operational report generated: {args.output}")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    if "operational_metrics" not in metadata or not metadata["operational_metrics"]:
+        print("⚠ No operational metrics found in metadata file.", file=sys.stderr)
+        print("  Enable metrics tracking: LangChainMonitor(system_name='...', enable_metrics=True)", file=sys.stderr)
         return 1
 
+    metrics = metadata["operational_metrics"]
+    print(f"Analyzing operational metrics for: {metadata.get('system_name', 'unknown')}\n")
 
+    if "operations" in metrics:
+        ops = metrics["operations"]
+        print(f"Operations Summary: {ops.get('total', 0)} total, "
+              f"{ops.get('successful', 0)} successful, "
+              f"{ops.get('failed', 0)} failed ({ops.get('error_rate_percent', 0)}% error rate)\n")
+
+    if args.show_performance or not args.show_costs:
+        if "performance" in metrics:
+            perf = metrics["performance"]
+            print(f"Performance: avg {perf.get('avg_execution_time_ms', 0):.2f}ms, "
+                  f"min {perf.get('min_execution_time_ms', 0):.2f}ms, "
+                  f"max {perf.get('max_execution_time_ms', 0):.2f}ms\n")
+
+    if args.show_costs or not args.show_performance:
+        if "costs" in metrics:
+            costs = metrics["costs"]
+            print(f"Total Estimated Cost: ${costs.get('total_estimated_usd', 0):.6f}")
+            if "by_model" in costs and costs["by_model"]:
+                for model, cost in costs["by_model"].items():
+                    print(f"  {model}: ${cost:.6f}")
+            print()
+
+    if "token_usage" in metrics:
+        tokens = metrics["token_usage"]
+        print(f"Token Usage: {tokens.get('total_input_tokens', 0):,} in, "
+              f"{tokens.get('total_output_tokens', 0):,} out, "
+              f"{tokens.get('total_tokens', 0):,} total\n")
+
+    analysis = MetricsAnalyzer.analyze_from_dict(metrics)
+    issues = analysis.get("issues_detected", [])
+    if issues:
+        print("Issues Detected:")
+        for issue in issues:
+            print(f"  ⚠ {issue}")
+        print()
+
+    if "errors" in metrics and metrics["errors"]:
+        error_count = len(metrics["errors"])
+        print(f"Errors Recorded: {error_count}")
+        for error in metrics["errors"][:3]:
+            print(f"  - {error.get('error_message', 'Unknown error')}")
+        if error_count > 3:
+            print(f"  ... and {error_count - 3} more")
+        print()
+
+    if args.output:
+        generator.generate_document(
+            template_name="operational_report.md.jinja2",
+            metadata=metadata, output_path=args.output
+        )
+        print(f"✓ Operational report generated: {args.output}")
+
+    return 0
+
+
+@_cli_command
 def cmd_audit_trail(args) -> int:
     """Handle audit-trail command."""
-    try:
-        # Load metadata
-        storage = MetadataStorage(enable_auditing=True)
-        storage.load_from_file(args.metadata)
+    storage = MetadataStorage(enable_auditing=True)
+    storage.load_from_file(args.metadata)
 
-        audit_trail = storage.get_audit_trail()
-        if not audit_trail or not audit_trail.events:
-            print("No audit trail found in metadata file.", file=sys.stderr)
-            return 1
-
-        print(f"Audit Trail for: {storage.system_name}")
-        print(f"Total Events: {len(audit_trail.events)}")
-        print()
-
-        # Verify integrity if requested
-        if args.verify:
-            verification = audit_trail.verify_integrity()
-            print("Integrity Verification:")
-            print(f"  Total Events: {verification['total_events']}")
-            print(f"  Verified: {verification['verified']}")
-            if verification['corrupted']:
-                print(f"  ⚠ Corrupted Events: {len(verification['corrupted'])}")
-                for event_id in verification['corrupted']:
-                    print(f"    - {event_id}")
-            else:
-                print("  ✓ All events verified - integrity intact")
-            print()
-
-        # Display events
-        events = audit_trail.events
-        if args.event_type:
-            events = [e for e in events if e.event_type == args.event_type]
-
-        print("Recent Events:")
-        for event in events[-20:]:  # Show last 20 events
-            print(f"  [{event.timestamp}] {event.event_type}")
-            print(f"    {event.description}")
-            if event.metadata:
-                print(f"    Details: {event.metadata}")
-            print()
-
-        # Generate report if requested
-        if args.output:
-            report_data = AuditReportGenerator.generate_compliance_report(audit_trail)
-            generator = DocumentGenerator()
-            generator.generate_document(
-                template_name="audit_report.md.jinja2",
-                metadata=report_data,
-                output_path=args.output
-            )
-            print(f"✓ Audit report generated: {args.output}")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    audit_trail = storage.get_audit_trail()
+    if not audit_trail or not audit_trail.events:
+        print("No audit trail found in metadata file.", file=sys.stderr)
         return 1
 
+    print(f"Audit Trail for: {storage.system_name}")
+    print(f"Total Events: {len(audit_trail.events)}\n")
 
+    if args.verify:
+        verification = audit_trail.verify_integrity()
+        print(f"Integrity Verification: {verification['verified']}/{verification['total_events']} events")
+        if verification['corrupted']:
+            print(f"  ⚠ Corrupted: {', '.join(verification['corrupted'])}")
+        else:
+            print("  ✓ All events verified - integrity intact")
+        print()
+
+    events = audit_trail.events
+    if args.event_type:
+        events = [e for e in events if e.event_type == args.event_type]
+
+    print("Recent Events:")
+    for event in events[-20:]:
+        print(f"  [{event.timestamp}] {event.event_type}: {event.description}")
+
+    if args.output:
+        report_data = AuditReportGenerator.generate_compliance_report(audit_trail)
+        generator = DocumentGenerator()
+        generator.generate_document(
+            template_name="audit_report.md.jinja2",
+            metadata=report_data, output_path=args.output
+        )
+        print(f"\n✓ Audit report generated: {args.output}")
+
+    return 0
+
+
+@_cli_command
 def cmd_data_quality(args) -> int:
     """Handle data-quality command."""
-    try:
-        # Load metadata with data governance
-        storage = MetadataStorage()
-        storage.load_from_file(args.metadata)
+    storage = MetadataStorage()
+    storage.load_from_file(args.metadata)
 
-        governance_tracker = storage.get_data_governance_tracker()
-        if not governance_tracker:
-            print("No data governance information found in metadata file.", file=sys.stderr)
-            return 1
-
-        print(f"Data Quality Summary for: {governance_tracker.system_name}")
-        print()
-
-        # Data quality summary
-        quality = governance_tracker.get_data_quality_summary()
-        print(f"Total Data Sources: {quality['total_sources']}")
-        if quality['total_sources'] > 0:
-            print(f"Sources with Quality Metrics: {quality['sources_with_quality_metrics']}")
-            print()
-            print("Quality Distribution:")
-            for status, count in quality['quality_distribution'].items():
-                if count > 0:
-                    print(f"  {status}: {count}")
-        print()
-
-        # Privacy summary
-        privacy = governance_tracker.get_privacy_summary()
-        print("Privacy & Compliance:")
-        print(f"  Personal Data Sources: {privacy['personal_data_sources']}")
-        print(f"  Sensitive Data Sources: {privacy['sensitive_data_sources']}")
-        print(f"  Sources with License: {privacy['sources_with_license']}")
-        print(f"  Sources with Copyright Info: {privacy['sources_with_copyright']}")
-        print()
-
-        # Detailed view if requested
-        if args.detailed and governance_tracker.sources:
-            print("Detailed Source Information:")
-            for source in governance_tracker.sources.values():
-                print(f"\n  {source.name} ({source.source_id})")
-                print(f"    Type: {source.data_type.value}")
-                print(f"    Quality Status: {source.quality_status.value}")
-                if source.personal_data:
-                    print(f"    ⚠ Contains Personal Data (GDPR compliance required)")
-                if source.sensitive_data:
-                    print(f"    ⚠ Contains Sensitive Data (Enhanced protection required)")
-
-        # Save report if requested
-        if args.output:
-            report_data = {
-                "system_name": governance_tracker.system_name,
-                "quality_summary": quality,
-                "privacy_summary": privacy,
-                "generated_at": datetime.now().isoformat()
-            }
-            with open(args.output, 'w', encoding='utf-8') as f:
-                json.dump(report_data, f, indent=2, ensure_ascii=False)
-            print(f"✓ Quality report saved: {args.output}")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    governance_tracker = storage.get_data_governance_tracker()
+    if not governance_tracker:
+        print("No data governance information found in metadata file.", file=sys.stderr)
         return 1
 
+    quality = governance_tracker.get_data_quality_summary()
+    privacy = governance_tracker.get_privacy_summary()
 
+    print(f"Data Quality Summary for: {governance_tracker.system_name}\n")
+    print(f"Total Data Sources: {quality['total_sources']}")
+    if quality['total_sources'] > 0:
+        print(f"Sources with Quality Metrics: {quality['sources_with_quality_metrics']}")
+        for status, count in quality['quality_distribution'].items():
+            if count > 0:
+                print(f"  {status}: {count}")
+    print()
+
+    print(f"Privacy: {privacy['personal_data_sources']} personal, "
+          f"{privacy['sensitive_data_sources']} sensitive, "
+          f"{privacy['sources_with_license']} licensed\n")
+
+    if args.detailed and governance_tracker.sources:
+        print("Detailed Source Information:")
+        for source in governance_tracker.sources.values():
+            flags = []
+            if source.personal_data:
+                flags.append("personal")
+            if source.sensitive_data:
+                flags.append("sensitive")
+            flag_str = f" [{', '.join(flags)}]" if flags else ""
+            print(f"  {source.name} ({source.data_type.value}, {source.quality_status.value}){flag_str}")
+
+    if args.output:
+        report_data = {
+            "system_name": governance_tracker.system_name,
+            "quality_summary": quality,
+            "privacy_summary": privacy,
+            "generated_at": datetime.now().isoformat()
+        }
+        with open(args.output, 'w', encoding='utf-8') as f:
+            json.dump(report_data, f, indent=2, ensure_ascii=False)
+        print(f"✓ Quality report saved: {args.output}")
+
+    return 0
+
+
+@_cli_command
 def cmd_article10_report(args) -> int:
     """Handle article10-report command."""
-    try:
-        # Load metadata with data governance
-        storage = MetadataStorage()
-        storage.load_from_file(args.metadata)
+    storage = MetadataStorage()
+    storage.load_from_file(args.metadata)
 
-        governance_tracker = storage.get_data_governance_tracker()
-        if not governance_tracker:
-            print("No data governance information found in metadata file.", file=sys.stderr)
-            return 1
-
-        # Generate Article 10 compliance report
-        report = governance_tracker.generate_article10_report()
-
-        print(f"EU AI Act Article 10 Compliance Report")
-        print(f"System: {report['system_name']}")
-        print(f"Generated: {report['report_generated']}")
-        print()
-
-        print("Data Sources Summary:")
-        print(f"  Total Sources: {report['data_sources']['total']}")
-        print(f"  By Type:")
-        for dtype, count in report['data_sources']['by_type'].items():
-            if count > 0:
-                print(f"    {dtype}: {count}")
-        print()
-
-        print("Data Transformations:")
-        print(f"  Total Transformations: {report['transformations']['total']}")
-        if report['transformations']['total'] > 0:
-            print(f"  By Type:")
-            for ttype, count in report['transformations']['by_type'].items():
-                if count > 0:
-                    print(f"    {ttype}: {count}")
-        print()
-
-        print("Data Quality:")
-        print(f"  Total Sources: {report['data_quality']['total_sources']}")
-        print(f"  Sources with Metrics: {report['data_quality']['sources_with_quality_metrics']}")
-        print()
-
-        print("Privacy Compliance:")
-        print(f"  Personal Data Sources: {report['privacy_compliance']['personal_data_sources']}")
-        print(f"  Sensitive Data Sources: {report['privacy_compliance']['sensitive_data_sources']}")
-        print(f"  Licensed Sources: {report['privacy_compliance']['sources_with_license']}")
-        print()
-
-        print("Compliance Checks:")
-        print(f"  Total Checks: {report['compliance_checks']['total']}")
-        print(f"  Passed: {report['compliance_checks']['passed']}")
-        print(f"  Failed: {report['compliance_checks']['failed']}")
-        print()
-
-        if report['compliance_checks']['failed'] > 0:
-            print("⚠ Warning: Some compliance checks failed. Review required.")
-
-        # Save report if requested
-        if args.output:
-            with open(args.output, 'w', encoding='utf-8') as f:
-                json.dump(report, f, indent=2, ensure_ascii=False)
-            print(f"✓ Article 10 compliance report saved: {args.output}")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    governance_tracker = storage.get_data_governance_tracker()
+    if not governance_tracker:
+        print("No data governance information found in metadata file.", file=sys.stderr)
         return 1
 
+    report = governance_tracker.generate_article10_report()
 
+    print(f"EU AI Act Article 10 Compliance Report")
+    print(f"System: {report['system_name']} | Generated: {report['report_generated']}\n")
+
+    print(f"Data Sources: {report['data_sources']['total']}")
+    for dtype, count in report['data_sources']['by_type'].items():
+        if count > 0:
+            print(f"  {dtype}: {count}")
+
+    print(f"\nTransformations: {report['transformations']['total']}")
+    for ttype, count in report['transformations']['by_type'].items():
+        if count > 0:
+            print(f"  {ttype}: {count}")
+
+    checks = report['compliance_checks']
+    print(f"\nCompliance Checks: {checks['passed']}/{checks['total']} passed")
+    if checks['failed'] > 0:
+        print("⚠ Some compliance checks failed. Review required.")
+
+    if args.output:
+        with open(args.output, 'w', encoding='utf-8') as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        print(f"\n✓ Article 10 compliance report saved: {args.output}")
+
+    return 0
+
+
+@_cli_command
 def cmd_generate_model_card(args) -> int:
     """Handle generate-model-card command."""
-    try:
-        # Load metadata
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
+    generator, metadata = _load_metadata(args.metadata)
 
-        card_generator = ModelCardGenerator()
+    if args.all:
+        cards = generate_model_cards_for_all_models(metadata)
+        output_dir = args.output or "model_cards"
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        ext = "json" if args.format == "json" else "md"
 
-        if args.all:
-            # Generate cards for all models
-            cards = generate_model_cards_for_all_models(metadata)
-
+        for card in cards:
+            filename = f"{card.model_details.name.replace(' ', '_').lower()}_card.{ext}"
+            filepath = Path(output_dir) / filename
             if args.format == "json":
-                # Save as JSON files
-                output_dir = args.output or "model_cards"
-                Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-                for i, card in enumerate(cards):
-                    filename = f"{card.model_details.name.replace(' ', '_').lower()}_card.json"
-                    filepath = Path(output_dir) / filename
-                    card.save_json(str(filepath))
-                    print(f"✓ Generated: {filepath}")
-
-                print(f"\n✓ Generated {len(cards)} model card(s) in JSON format")
+                card.save_json(str(filepath))
             else:
-                # Save as markdown files
-                output_dir = args.output or "model_cards"
-                Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-                for card in cards:
-                    filename = f"{card.model_details.name.replace(' ', '_').lower()}_card.md"
-                    filepath = Path(output_dir) / filename
-
-                    # Render markdown using template
-                    generator.generate_document(
-                        template_name="model_card.md.jinja2",
-                        metadata=card.to_dict(),
-                        output_path=str(filepath)
-                    )
-                    print(f"✓ Generated: {filepath}")
-
-                print(f"\n✓ Generated {len(cards)} model card(s) in Markdown format")
-
-        else:
-            # Generate single model card
-            card = card_generator.generate_from_metadata(
-                metadata,
-                model_name=args.model_name
-            )
-
-            if args.format == "json":
-                # Save as JSON
-                output_path = args.output or "model_card.json"
-                card.save_json(output_path)
-                print(f"✓ Model card generated: {output_path}")
-            else:
-                # Save as markdown
-                output_path = args.output or "model_card.md"
                 generator.generate_document(
                     template_name="model_card.md.jinja2",
-                    metadata=card.to_dict(),
-                    output_path=output_path
+                    metadata=card.to_dict(), output_path=str(filepath)
                 )
-                print(f"✓ Model card generated: {output_path}")
+            print(f"✓ Generated: {filepath}")
+        print(f"\n✓ Generated {len(cards)} model card(s)")
+    else:
+        card = ModelCardGenerator().generate_from_metadata(metadata, model_name=args.model_name)
+        if args.format == "json":
+            output_path = args.output or "model_card.json"
+            card.save_json(output_path)
+        else:
+            output_path = args.output or "model_card.md"
+            generator.generate_document(
+                template_name="model_card.md.jinja2",
+                metadata=card.to_dict(), output_path=output_path
+            )
+        print(f"✓ Model card generated: {output_path}")
+        print(f"\nModel: {card.model_details.name} ({card.model_details.model_type})")
+        if card.regulatory_compliance and card.regulatory_compliance.risk_level:
+            print(f"Risk Level: {card.regulatory_compliance.risk_level.upper()}")
 
-            print(f"\nModel: {card.model_details.name}")
-            print(f"Type: {card.model_details.model_type}")
-            if card.regulatory_compliance:
-                if card.regulatory_compliance.risk_level:
-                    print(f"Risk Level: {card.regulatory_compliance.risk_level.upper()}")
-                if card.regulatory_compliance.eu_ai_act_category:
-                    print(f"EU AI Act Category: {card.regulatory_compliance.eu_ai_act_category}")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    return 0
 
 
+@_cli_command
 def cmd_generate_technical_doc(args) -> int:
     """Handle generate-technical-doc command."""
-    try:
-        # Load metadata
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
+    generator, metadata = _load_metadata(args.metadata)
 
-        print(f"Generating Article 11 Technical Documentation for: {metadata.get('system_name', 'unknown')}")
+    print(f"Generating Article 11 Technical Documentation for: {metadata.get('system_name', 'unknown')}")
 
-        # Generate technical documentation
-        tech_doc_gen = TechnicalDocumentationGenerator(metadata)
-        documentation = tech_doc_gen.generate_documentation()
+    tech_doc_gen = TechnicalDocumentationGenerator(metadata)
+    documentation = tech_doc_gen.generate_documentation()
 
-        if args.format == "json":
-            # Save as JSON
-            output_path = args.output or "technical_documentation.json"
-            tech_doc_gen.to_json(output_path)
-            print(f"✓ Technical documentation generated: {output_path}")
-        else:
-            # Save as markdown using template
-            output_path = args.output or "technical_documentation.md"
-            generator.generate_document(
-                template_name="article11_technical_documentation.md.jinja2",
-                metadata=documentation,
-                output_path=output_path
-            )
-            print(f"✓ Technical documentation generated: {output_path}")
+    if args.format == "json":
+        output_path = args.output or "technical_documentation.json"
+        tech_doc_gen.to_json(output_path)
+    else:
+        output_path = args.output or "technical_documentation.md"
+        generator.generate_document(
+            template_name="article11_technical_documentation.md.jinja2",
+            metadata=documentation, output_path=output_path
+        )
+    print(f"✓ Technical documentation generated: {output_path}")
 
-        # Show summary
-        print(f"\nSystem: {documentation['system_identification']['system_name']}")
-        print(f"Risk Classification: {documentation['system_identification']['risk_classification']}")
-        print(f"Framework: {documentation['system_identification']['framework']}")
+    sys_id = documentation['system_identification']
+    print(f"\nSystem: {sys_id['system_name']} | Framework: {sys_id['framework']}")
+    print(f"Risk Classification: {sys_id['risk_classification']}")
 
-        risk_status = documentation['risk_management']['risk_assessment_status']
-        if risk_status == "completed":
-            print(f"Risk Assessment: ✓ Completed")
-        else:
-            print(f"Risk Assessment: ⚠ Not performed (run 'aiact-toolkit assess-risk' first)")
+    risk_status = documentation['risk_management']['risk_assessment_status']
+    print(f"Risk Assessment: {'✓ Completed' if risk_status == 'completed' else '⚠ Not performed'}")
 
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    return 0
 
 
+@_cli_command
 def cmd_bias_report(args) -> int:
     """Handle bias-report command."""
-    try:
-        # Load metadata
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
+    generator, metadata = _load_metadata(args.metadata)
 
-        print(f"Generating Bias and Fairness Report for: {metadata.get('system_name', 'unknown')}")
+    print(f"Generating Bias and Fairness Report for: {metadata.get('system_name', 'unknown')}")
 
-        # Check if bias analyses exist in metadata
-        bias_analyses = metadata.get('bias_analyses', [])
-        if not bias_analyses:
-            print("\nWarning: No bias analyses found in metadata.", file=sys.stderr)
-            print("The system has not yet performed any bias analysis.", file=sys.stderr)
-            print("To perform bias analysis, use the BiasDetector class in your code.", file=sys.stderr)
-            print("\nGenerating template report with placeholder information...\n")
+    bias_analyses = metadata.get('bias_analyses', [])
+    if not bias_analyses:
+        print("\nWarning: No bias analyses found. Generating template report...", file=sys.stderr)
 
-        # Generate bias report
-        output_path = args.output or "bias_fairness_report.md"
-        generator.generate_document(
-            template_name="bias_fairness_report.md.jinja2",
-            metadata=metadata,
-            output_path=output_path
-        )
-        print(f"✓ Bias and fairness report generated: {output_path}")
+    output_path = args.output or "bias_fairness_report.md"
+    generator.generate_document(
+        template_name="bias_fairness_report.md.jinja2",
+        metadata=metadata, output_path=output_path
+    )
+    print(f"✓ Bias and fairness report generated: {output_path}")
 
-        # Show summary if analyses exist
-        if bias_analyses:
-            bias_summary = metadata.get('bias_summary', {})
-            print(f"\nSummary:")
-            print(f"Total Analyses: {bias_summary.get('total_analyses', 0)}")
-            print(f"Overall Risk Level: {bias_summary.get('overall_risk_level', 'unknown').upper()}")
-            print(f"Average Fairness Score: {bias_summary.get('average_fairness_score', 0):.1%}")
+    if bias_analyses:
+        bias_summary = metadata.get('bias_summary', {})
+        risk_level = bias_summary.get('overall_risk_level', 'unknown')
+        print(f"\nAnalyses: {bias_summary.get('total_analyses', 0)} | "
+              f"Risk: {risk_level.upper()} | "
+              f"Fairness: {bias_summary.get('average_fairness_score', 0):.1%}")
 
-            risk_level = bias_summary.get('overall_risk_level', 'unknown')
-            if risk_level in ['high', 'critical']:
-                print("\n⚠ WARNING: Significant fairness issues detected!")
-                print("Review the detailed report for recommendations.")
-            elif risk_level == 'medium':
-                print("\nℹ Some fairness issues detected. Regular monitoring recommended.")
-            elif risk_level == 'low':
-                print("\n✓ System shows good fairness characteristics.")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    return 0
 
 
+@_cli_command
 def cmd_conformity_assessment(args) -> int:
     """Handle conformity-assessment command."""
-    try:
-        # Load metadata
-        generator = DocumentGenerator()
-        metadata = generator.load_metadata(args.metadata)
+    generator, metadata = _load_metadata(args.metadata)
 
-        print(f"Performing Conformity Assessment for: {metadata.get('system_name', 'unknown')}")
-        print()
+    print(f"Performing Conformity Assessment for: {metadata.get('system_name', 'unknown')}\n")
 
-        # Perform conformity assessment
-        assessor = ConformityAssessor()
-        result = assessor.assess_compliance(metadata)
+    assessor = ConformityAssessor()
+    result = assessor.assess_compliance(metadata)
+    print(generate_conformity_report(result))
 
-        # Print summary
-        summary_text = generate_conformity_report(result)
-        print(summary_text)
+    if args.output and not args.summary:
+        report_data = {
+            "system_name": result.system_name,
+            "assessment_date": result.assessment_date,
+            "risk_level": result.risk_level,
+            "overall_status": result.overall_status.value,
+            "requirements_checked": result.requirements_checked,
+            "requirements_passed": result.requirements_passed,
+            "requirements_failed": result.requirements_failed,
+            "requirements_partial": result.requirements_partial,
+            "requirements_na": result.requirements_na,
+            "category_results": result.category_results,
+            "detailed_results": result.detailed_results,
+            "recommendations": result.recommendations,
+            "critical_gaps": result.critical_gaps
+        }
 
-        # Generate detailed report if output specified
-        if args.output and not args.summary:
-            report_data = {
-                "system_name": result.system_name,
-                "assessment_date": result.assessment_date,
-                "risk_level": result.risk_level,
-                "overall_status": result.overall_status.value,
-                "requirements_checked": result.requirements_checked,
-                "requirements_passed": result.requirements_passed,
-                "requirements_failed": result.requirements_failed,
-                "requirements_partial": result.requirements_partial,
-                "requirements_na": result.requirements_na,
-                "category_results": result.category_results,
-                "detailed_results": result.detailed_results,
-                "recommendations": result.recommendations,
-                "critical_gaps": result.critical_gaps
-            }
-
-            if args.format == "json":
-                # Serialize detailed_results for JSON output
-                report_data["detailed_results"] = [
-                    {
-                        "requirement_id": req.requirement_id,
-                        "category": req.category.value,
-                        "article": req.article,
-                        "description": req.description,
-                        "mandatory": req.mandatory,
-                        "status": req.status.value,
-                        "verification_method": req.verification_method,
-                        "evidence": req.evidence,
-                        "findings": req.findings
-                    }
-                    for req in result.detailed_results
-                ]
-                with open(args.output, 'w', encoding='utf-8') as f:
-                    json.dump(report_data, f, indent=2, ensure_ascii=False)
-                print(f"\n✓ Conformity assessment saved (JSON): {args.output}")
-            else:
-                generator.generate_document(
-                    template_name="conformity_assessment_report.md.jinja2",
-                    metadata=report_data,
-                    output_path=args.output
-                )
-                print(f"\n✓ Conformity assessment report generated: {args.output}")
-
-        # Return exit code based on compliance status
-        if result.overall_status.value == "compliant":
-            return 0
-        elif result.overall_status.value == "non_compliant":
-            return 2  # Non-zero to indicate non-compliance
+        if args.format == "json":
+            report_data["detailed_results"] = [
+                {
+                    "requirement_id": req.requirement_id,
+                    "category": req.category.value,
+                    "article": req.article,
+                    "description": req.description,
+                    "mandatory": req.mandatory,
+                    "status": req.status.value,
+                    "verification_method": req.verification_method,
+                    "evidence": req.evidence,
+                    "findings": req.findings
+                }
+                for req in result.detailed_results
+            ]
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(report_data, f, indent=2, ensure_ascii=False)
+            print(f"\n✓ Conformity assessment saved (JSON): {args.output}")
         else:
-            return 1  # Partial compliance
+            generator.generate_document(
+                template_name="conformity_assessment_report.md.jinja2",
+                metadata=report_data, output_path=args.output
+            )
+            print(f"\n✓ Conformity assessment report generated: {args.output}")
 
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    if result.overall_status.value == "compliant":
+        return 0
+    elif result.overall_status.value == "non_compliant":
+        return 2
+    return 1
 
 
 def main():

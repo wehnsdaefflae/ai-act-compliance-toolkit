@@ -55,7 +55,7 @@ from .conformity_assessment import (
     generate_conformity_report
 )
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 __all__ = [
     "BaseFrameworkMonitor",
     "LangChainMonitor",
